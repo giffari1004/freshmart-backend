@@ -1,13 +1,480 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "windows"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  passwordHash String?
+  phone        String?
+  avatarUrl    String?
+  role         Role         @default(CUSTOMER)
+  authProvider AuthProvider @default(EMAIL)
+  providerId   String?
+  isVerified   Boolean      @default(false)
+  verifiedAt   DateTime?
+  referralCode String       @unique
+  referredById String?
+  referredBy   User?        @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]       @relation("UserReferrals")
+  storeId      String?
+  store        Store?       @relation(fields: [storeId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  addresses            UserAddress[]
+  authTokens           AuthToken[]
+  cart                 Cart?
+  orders               Order[]
+  userVouchers         UserVoucher[]
+  discountUsages       DiscountUsage[]
+  stockJournals        StockJournal[]       @relation("StockJournalCreatedBy")
+  orderStatusHistories OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  createdCategories    ProductCategory[]    @relation("ProductCategoryCreatedBy")
+  createdProducts      Product[]            @relation("ProductCreatedBy")
+  createdDiscounts     Discount[]           @relation("DiscountCreatedBy")
+
+  @@map("users")
+}
+
+model AuthToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String
+  type      TokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("auth_tokens")
+}
+
+model UserAddress {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label         String
+  recipientName String
+  phone         String
+  province      String
+  city          String
+  district      String
+  fullAddress   String
+  latitude      Float
+  longitude     Float
+  isPrimary     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  orders Order[]
+
+  @@map("user_addresses")
+}
+
+model Store {
+  id                 String    @id @default(uuid())
+  name               String
+  code               String    @unique
+  latitude           Float
+  longitude          Float
+  address            String
+  maxServiceRadiusKm Float
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  storeAdmins     User[]
+  storeProducts   StoreProduct[]
+  discounts       Discount[]
+  orders          Order[]
+  shippingMethods ShippingMethod[]
+
+  @@map("stores")
+}
+
+model ShippingMethod {
+  id              String   @id @default(uuid())
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id])
+  destinationCity String
+  courierCode     String
+  serviceCode     String
+  serviceName     String
+  cost            Decimal  @db.Decimal(12, 2)
+  etd             String?
+  createdAt       DateTime @default(now())
+
+  orders Order[]
+
+  @@map("shipping_methods")
+}
+
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  createdById String
+  createdBy   User      @relation("ProductCategoryCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id          String          @id @default(uuid())
+  categoryId  String
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  name        String          @unique
+  description String?
+  basePrice   Decimal         @db.Decimal(12, 2)
+  weight      Int
+  isActive    Boolean         @default(true)
+  createdById String
+  createdBy   User            @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+
+  images        ProductImage[]
+  storeProducts StoreProduct[]
+  orderItems    OrderItem[]
+  discounts     Discount[]
+  vouchers      Voucher[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("product_images")
+}
+
+model StoreProduct {
+  id            String    @id @default(uuid())
+  storeId       String
+  store         Store     @relation(fields: [storeId], references: [id])
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id])
+  stockQuantity Int       @default(0)
+  reservedStock Int       @default(0)
+  priceOverride Decimal?  @db.Decimal(12, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  stockJournals StockJournal[]
+  cartItems     CartItem[]
+
+  @@unique([storeId, productId])
+  @@map("store_products")
+}
+
+model StockJournal {
+  id             String             @id @default(uuid())
+  storeProductId String
+  storeProduct   StoreProduct       @relation(fields: [storeProductId], references: [id])
+  type           StockJournalType
+  quantity       Int
+  beforeStock    Int
+  afterStock     Int
+  referenceType  StockReferenceType
+  referenceId    String?
+  notes          String?
+  createdById    String?
+  createdBy      User?              @relation("StockJournalCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime           @default(now())
+
+  @@map("stock_journals")
+}
+
+model Discount {
+  id                String       @id @default(uuid())
+  storeId           String
+  store             Store        @relation(fields: [storeId], references: [id])
+  productId         String?
+  product           Product?     @relation(fields: [productId], references: [id])
+  type              DiscountType
+  valueType         ValueType
+  value             Decimal      @db.Decimal(12, 2)
+  minPurchaseAmount Decimal?     @db.Decimal(12, 2)
+  maxDiscountAmount Decimal?     @db.Decimal(12, 2)
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean      @default(true)
+  createdById       String
+  createdBy         User         @relation("DiscountCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  vouchers Voucher[]
+  usages   DiscountUsage[]
+
+  @@map("discounts")
+}
+
+model Voucher {
+  id                String           @id @default(uuid())
+  discountId        String?
+  discount          Discount?        @relation(fields: [discountId], references: [id])
+  code              String           @unique
+  usageType         VoucherUsageType
+  valueType         ValueType
+  value             Decimal          @db.Decimal(12, 2)
+  maxDiscountAmount Decimal?         @db.Decimal(12, 2)
+  minPurchaseAmount Decimal?         @db.Decimal(12, 2)
+  productId         String?
+  product           Product?         @relation(fields: [productId], references: [id])
+  expiredAt         DateTime
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+
+  userVouchers UserVoucher[]
+
+  @@map("vouchers")
+}
+
+model UserVoucher {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  voucherId String
+  voucher   Voucher       @relation(fields: [voucherId], references: [id])
+  source    VoucherSource
+  isUsed    Boolean       @default(false)
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  orderVouchers  OrderVoucher[]
+  discountUsages DiscountUsage[]
+
+  @@unique([userId, voucherId])
+  @@map("user_vouchers")
+}
+
+model DiscountUsage {
+  id             String       @id @default(uuid())
+  discountId     String
+  discount       Discount     @relation(fields: [discountId], references: [id])
+  userVoucherId  String?
+  userVoucher    UserVoucher? @relation(fields: [userVoucherId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  orderId        String
+  order          Order        @relation(fields: [orderId], references: [id])
+  amountDeducted Decimal      @db.Decimal(12, 2)
+  createdAt      DateTime     @default(now())
+
+  @@map("discount_usages")
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id             String       @id @default(uuid())
+  cartId         String
+  cart           Cart         @relation(fields: [cartId], references: [id])
+  storeProductId String
+  storeProduct   StoreProduct @relation(fields: [storeProductId], references: [id])
+  quantity       Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([cartId, storeProductId])
+  @@map("cart_items")
+}
+
+model Order {
+  id               String         @id @default(uuid())
+  orderNumber      String         @unique
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  storeId          String
+  store            Store          @relation(fields: [storeId], references: [id])
+  addressId        String
+  address          UserAddress    @relation(fields: [addressId], references: [id])
+  status           OrderStatus    @default(WAITING_PAYMENT)
+  subtotal         Decimal        @db.Decimal(12, 2)
+  shippingCost     Decimal        @db.Decimal(12, 2)
+  shippingMethodId String
+  shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id])
+  discountAmount   Decimal        @default(0) @db.Decimal(12, 2)
+  totalAmount      Decimal        @db.Decimal(12, 2)
+  paymentDeadline  DateTime?
+  shippedAt        DateTime?
+  confirmedAt      DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  items           OrderItem[]
+  statusHistories OrderStatusHistory[]
+  payments        Payment[]
+  orderVouchers   OrderVoucher[]
+  discountUsages  DiscountUsage[]
+
+  @@map("orders")
+}
+
+model OrderVoucher {
+  id             String      @id @default(uuid())
+  orderId        String
+  order          Order       @relation(fields: [orderId], references: [id])
+  userVoucherId  String
+  userVoucher    UserVoucher @relation(fields: [userVoucherId], references: [id])
+  amountDeducted Decimal     @db.Decimal(12, 2)
+  createdAt      DateTime    @default(now())
+
+  @@unique([orderId, userVoucherId])
+  @@map("order_vouchers")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id])
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  amount          Decimal       @db.Decimal(12, 2)
+  paymentProofUrl String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model OrderItem {
+  id                  String  @id @default(uuid())
+  orderId             String
+  order               Order   @relation(fields: [orderId], references: [id])
+  productId           String
+  product             Product @relation(fields: [productId], references: [id])
+  productNameSnapshot String
+  priceSnapshot       Decimal @db.Decimal(12, 2)
+  quantity            Int
+  subtotal            Decimal @db.Decimal(12, 2)
+
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(uuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id])
+  status      OrderStatus
+  changedById String?
+  changedBy   User?       @relation("OrderStatusChangedBy", fields: [changedById], references: [id])
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  @@map("order_status_histories")
+}
+
+enum Role {
+  CUSTOMER
+  STORE_ADMIN
+  SUPER_ADMIN
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum StockJournalType {
+  IN
+  OUT
+}
+
+enum StockReferenceType {
+  ORDER
+  MANUAL_ADJUSTMENT
+  ORDER_CANCEL
+  STORE_TRANSFER
+}
+
+enum DiscountType {
+  DIRECT
+  MIN_PURCHASE
+  BUY1GET1
+}
+
+enum ValueType {
+  PERCENTAGE
+  NOMINAL
+}
+
+enum VoucherUsageType {
+  PRODUCT_SPECIFIC
+  CART_TOTAL
+  SHIPPING
+}
+
+enum VoucherSource {
+  PUBLIC
+  REFERRAL
+  PURCHASE_REWARD
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER
+  GATEWAY
+}
+
+enum PaymentStatus {
+  PENDING
+  WAITING_CONFIRMATION
+  SETTLEMENT
+  EXPIRED
+  DENIED
+  CANCELLED
+}
+
+enum OrderStatus {
+  WAITING_PAYMENT
+  WAITING_CONFIRMATION
+  PROCESSED
+  SHIPPED
+  CONFIRMED
+  CANCELLED
 }
