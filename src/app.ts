@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import { WHITE_LIST } from "./configs/env-config";
 import { ErrorMiddleware } from "./middlewares/error-middleware";
 import { NotFoundError } from "./errors/NotFoundError";
+import { AdminRouter } from "./features/admin/admin-route";
 
 const app = express();
 
@@ -20,7 +21,6 @@ app.use(
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
-
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -28,7 +28,6 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(globalLimiter);
-
 app.get("/", (_req, res) => {
   res.status(200).json({
     status: "ok",
@@ -40,6 +39,7 @@ app.get("/", (_req, res) => {
 // Routes
 // app.use('/api/products', ProductRoutes);
 // app.use('/api/auth', AuthRoutes);
+app.use('/api/v1' , AdminRouter)
 
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
