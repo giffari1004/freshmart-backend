@@ -22,7 +22,7 @@ model User {
   providerId   String?
   isVerified   Boolean      @default(false)
   verifiedAt   DateTime?
-  referralCode String       @unique
+  referralCode String?       @unique
   referredById String?
   referredBy   User?        @relation("UserReferrals", fields: [referredById], references: [id])
   referrals    User[]       @relation("UserReferrals")
