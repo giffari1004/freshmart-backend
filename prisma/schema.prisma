@@ -1,11 +1,3 @@
-// ==========================================================
-// Prisma Schema — Online Grocery Web App
-// Referensi: ERD_Online_Grocery_Web_App.md
-// Catatan: nama tabel & kolom di-map ke snake_case (@@map / @map)
-// supaya konsisten dengan dokumen ERD yang sudah didiskusikan.
-// Ganti "provider" di datasource sesuai kesepakatan tim (default: postgresql)
-// ==========================================================
-
 generator client {
   provider      = "prisma-client-js"
   output        = "../generated/prisma"
@@ -30,7 +22,7 @@ model User {
   providerId   String?
   isVerified   Boolean      @default(false)
   verifiedAt   DateTime?
-  referralCode String       @unique
+  referralCode String?       @unique
   referredById String?
   referredBy   User?        @relation("UserReferrals", fields: [referredById], references: [id])
   referrals    User[]       @relation("UserReferrals")
