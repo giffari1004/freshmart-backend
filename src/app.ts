@@ -8,6 +8,7 @@ import { WHITE_LIST } from "./configs/env-config";
 import { ErrorMiddleware } from "./middlewares/error-middleware";
 import { NotFoundError } from "./errors/NotFoundError";
 import { adminRouter } from "./features/admin/admin-route";
+import { categoryRouter } from "./features/category/category.route";
 
 const app = express();
 
@@ -39,8 +40,8 @@ app.get("/", (_req, res) => {
 // Routes
 // app.use('/api/products', ProductRoutes);
 // app.use('/api/auth', AuthRoutes);
-app.use('/api/v1' , adminRouter)
-
+app.use('/api/v1/admin' , adminRouter)
+app.use('/api/v1/categories', categoryRouter)
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
 });
