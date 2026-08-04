@@ -123,7 +123,7 @@ export class AdminService {
         id: params.id,
       },
     });
-    if (!existingUser || existingUser.role !== "STORE_ADMIN")
+    if (!existingUser || existingUser.role !== "STORE_ADMIN" || existingUser.deletedAt)
       throw new NotFoundError("Account is not found");
     const deleteAcc = await prisma.user.update({
       where: {

@@ -9,4 +9,4 @@ adminRouter.use(authMiddleware, requireRole('SUPER_ADMIN'));
 adminRouter.get('/users', AdminController.getAllUser);
 adminRouter.post('/store-admins', AdminController.create);
 adminRouter.patch('/store-admins/:id', AdminController.update);
-adminRouter.post('/store-admins/:id/delete', AdminController.delete);
+adminRouter.delete('/store-admins/:id', AdminController.delete);
