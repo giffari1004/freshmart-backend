@@ -46,7 +46,7 @@ export class CategoryService {
     createdById: string;
   }) {
     const existingName = await prisma.productCategory.findUnique({
-      where: { name: body.name },
+      where: { name: body.name , },
     });
     if (existingName) throw new ConflictError("Category name already exists");
     const createCategoryAcc = await prisma.productCategory.create({
