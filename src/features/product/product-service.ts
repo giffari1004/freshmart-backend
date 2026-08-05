@@ -8,9 +8,10 @@ import {
   createProductSchema,
   updateProductSchema,
   deleteProductSchema,
+  getCatalogSchema,
 } from "./product-validation";
 export class ProductService {
-  static async getAll({ query }: getAllProductSchema) {
+  static async getAllAdminProduct({ query }: getAllProductSchema) {
     const { page, limit, search, categoryId, sortBy, sortOrder } = query;
     const skip = (page - 1) * limit;
     const take = limit;
@@ -32,7 +33,12 @@ export class ProductService {
     ]);
     return {
       products,
-      meta: { page, limit, totalData, totalPages: Math.ceil(totalData / limit) },
+      meta: {
+        page,
+        limit,
+        totalData,
+        totalPages: Math.ceil(totalData / limit),
+      },
     };
   }
   static async create({
@@ -123,5 +129,55 @@ export class ProductService {
       data: { deletedAt: new Date() },
     });
     return deleteProductAcc;
+  }
+  static async getAllCustomerProduct({ query }: getCatalogSchema) {
+    const { storeId, page, limit, search, sortBy, sortOrder, categoryId } =
+      query;
+    const skip = (page - 1) * limit;
+    const take = limit;
+    const where: Prisma.StoreProductWhereInput = {
+      storeId,
+      deletedAt: null,
+      product: {
+        deletedAt: null,
+        ...(search && {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        }),
+        ...(categoryId && { categoryId }),
+      },
+    };
+    const [data, totalData] = await Promise.all([
+      prisma.storeProduct.findMany({
+        where,
+        skip,
+        take,
+        orderBy: {
+          product: {
+            [sortBy]: sortOrder,
+          },
+        },
+        include: {
+          product: {
+            include: {
+              category: true,
+              images: { where: { isPrimary: true }, take: 1 },
+            },
+          },
+        },
+      }),
+      prisma.storeProduct.count({ where }),
+    ]);
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        totalData,
+        totalPages: Math.ceil(totalData / limit),
+      },
+    };
   }
 }

@@ -9,7 +9,7 @@ export class ProductController {
     const { query } = validate(ProductValidation.GET_ALL_PRODUCT, {
       query: req.query,
     });
-    const { products, meta } = await ProductService.getAll({ query });
+    const { products, meta } = await ProductService.getAllAdminProduct({ query });
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Product retrieved successfully",

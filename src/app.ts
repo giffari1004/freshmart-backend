@@ -10,6 +10,7 @@ import { NotFoundError } from "./errors/NotFoundError";
 import { adminRouter } from "./features/admin/admin-route";
 import { categoryRouter } from "./features/category/category-route";
 import { productRoute } from "./features/product/product-route";
+import { customerProductRoute } from "./features/product/product-public-route";
 
 const app = express();
 
@@ -40,7 +41,8 @@ app.get("/", (_req, res) => {
 
 app.use('/api/v1/admin' , adminRouter)
 app.use('/api/v1/categories', categoryRouter)
-app.use('/api/v1/products', productRoute)
+app.use('/api/v1/admin/products', productRoute)
+app.use('/api/v1/products', customerProductRoute)
 
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
