@@ -1,5 +1,5 @@
 import z from "zod";
-import { CATEGORY_SORT_BY, CATEGORY_SORT_ORDER } from "./category-constan";
+import { CATEGORY_SORT_BY, CATEGORY_SORT_ORDER } from "./category-constant";
 export class CategoryValidation {
   static readonly CREATE_CATEGORY = z.object({
     body: z.object({
@@ -20,7 +20,7 @@ export class CategoryValidation {
         .optional()
         .transform((val) => (val === "" ? undefined : val)),
       sortBy: z.enum(CATEGORY_SORT_BY).default("createdAt"),
-      sortOrder: z.enum(CATEGORY_SORT_ORDER).default("asc"),
+      sortOrder: z.enum(CATEGORY_SORT_ORDER).default("desc"),
     }),
   });
   static readonly DELETE_CATEGORY = z.object({
