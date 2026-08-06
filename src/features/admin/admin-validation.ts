@@ -6,7 +6,10 @@ export class AdminValidation {
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
-      search: z.string().trim().optional().transform((val)=> val === "" ? undefined : val),
+      search: z.preprocess(
+        (val) => (val === "" ? undefined : val),
+        z.string().trim().optional(),
+      ),
       role: z
         .enum([Role.CUSTOMER, Role.STORE_ADMIN, Role.SUPER_ADMIN])
         .optional(),
@@ -44,4 +47,6 @@ export type createStoreAdminSchema = z.infer<
 export type updateStoreAdminSchema = z.infer<
   typeof AdminValidation.UPDATE_STORE_ADMIN
 >;
-export type deleteStoreAdminSchema = z.infer<typeof AdminValidation.DELETE_STORE_ADMIN>
+export type deleteStoreAdminSchema = z.infer<
+  typeof AdminValidation.DELETE_STORE_ADMIN
+>;
