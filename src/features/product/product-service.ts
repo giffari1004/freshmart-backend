@@ -9,6 +9,7 @@ import {
   updateProductSchema,
   deleteProductSchema,
   getCatalogSchema,
+  getProductDetailSchema,
 } from "./product-validation";
 export class ProductService {
   static async getAllAdminProduct({ query }: getAllProductSchema) {
@@ -178,6 +179,42 @@ export class ProductService {
         totalData,
         totalPages: Math.ceil(totalData / limit),
       },
+    };
+  }
+  static async getProductDetail({ query, params }: getProductDetailSchema) {
+    const item = await prisma.storeProduct.findFirst({
+      where: {
+        storeId: query.storeId,
+        productId: params.id,
+        deletedAt: null,
+        product: {
+          deletedAt: null,
+        },
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            images: {orderBy: {isPrimary: "desc"}},
+          },
+        },
+      },
+    });
+    if (!item) throw new NotFoundError("Product not found");
+    const stock = item.stockQuantity - item.reservedStock;
+    return {
+      id: item.product.id,
+      name: item.product.name,
+      description: item.product.description,
+      category: item.product.category.name,
+      price: item.priceOverride ?? item.product.basePrice,
+      stock,
+      isOutOfStock: stock <= 0,
+      images: item.product.images.map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        isPrimary: img.isPrimary,
+      })),
     };
   }
 }

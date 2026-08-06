@@ -36,11 +36,10 @@ export class ProductValidation {
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
-      search: z
-        .string()
-        .trim()
-        .optional()
-        .transform((val) => (val === "" ? undefined : val)),
+      search: z.preprocess(
+        (val) => (val === "" ? undefined : val),
+        z.string().trim().optional(),
+      ),
       categoryId: z.string().uuid("Invalid category id").optional(),
       sortBy: z.enum(PRODUCT_SORT_BY).default("createdAt"),
       sortOrder: z.enum(PRODUCT_SORT_ORDER).default("desc"),
@@ -56,15 +55,18 @@ export class ProductValidation {
       storeId: z.string().uuid("Invalid store id"),
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
-      search: z
-        .string()
-        .trim()
-        .optional()
-        .transform((val) => (val === "" ? undefined : val)),
+      search: z.preprocess(
+        (val) => (val === "" ? undefined : val),
+        z.string().trim().optional(),
+      ),
       categoryId: z.string().uuid("Invalid category id").optional(),
       sortBy: z.enum(PRODUCT_SORT_BY).default("createdAt"),
       sortOrder: z.enum(PRODUCT_SORT_ORDER).default("desc"),
     }),
+  });
+  static readonly GET_PRODUCT_DETAIL = z.object({
+    params: z.object({ id: z.string().uuid("Invalid product id") }),
+    query: z.object({ storeId: z.string().uuid("Invalid store id") }),
   });
 }
 export type createProductSchema = z.infer<
@@ -80,3 +82,6 @@ export type updateProductSchema = z.infer<
   typeof ProductValidation.UPDATE_PRODUCT
 >;
 export type getCatalogSchema = z.infer<typeof ProductValidation.GET_CATALOG>;
+export type getProductDetailSchema = z.infer<
+  typeof ProductValidation.GET_PRODUCT_DETAIL
+>;
