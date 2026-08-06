@@ -6,7 +6,7 @@ import { AuthUser } from "./auth-middleware";
 export function requireRole(...allowedRoles: AuthUser["role"][]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      throw new Forbidden("Anda tidak punya akses ke resource ini");
+      throw new Forbidden("You don't have permission to access this resource");
     }
     next();
   };
