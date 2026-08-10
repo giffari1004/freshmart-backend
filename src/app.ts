@@ -7,7 +7,13 @@ import rateLimit from "express-rate-limit";
 import { WHITE_LIST } from "./configs/env-config";
 import { ErrorMiddleware } from "./middlewares/error-middleware";
 import { NotFoundError } from "./errors/NotFoundError";
-
+import { adminRouter } from "./features/admin/admin-route";
+import cartRouter from "./features/cart/cart.route";
+import { categoryRouter } from "./features/category/category-route";
+import { productRoute } from "./features/product/product-route";
+import { customerProductRoute } from "./features/product/product-public-route";
+import checkoutrouter from "./features/checkout/route/checkout.route";
+import { inventoryRoute } from "./features/inventory/inventory-route";
 const app = express();
 
 app.use(helmet());
@@ -20,7 +26,6 @@ app.use(
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
-
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -28,7 +33,6 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(globalLimiter);
-
 app.get("/", (_req, res) => {
   res.status(200).json({
     status: "ok",
@@ -37,14 +41,18 @@ app.get("/", (_req, res) => {
   });
 });
 
-// Routes
-// app.use('/api/products', ProductRoutes);
-// app.use('/api/auth', AuthRoutes);
-
+app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/categories", categoryRouter);
+app.use("/api/v1/admin/products", productRoute);
+app.use("/api/v1/products", customerProductRoute);
+app.use("/api/v1/inventories", inventoryRoute)
+// Feature 3 - Cart
+app.use("/api/v1/checkout", checkoutrouter);
+app.use("/api/v1/cart", cartRouter);
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
 });
 
-app.use(ErrorMiddleware);
+app.use(ErrorMiddleware.handle);
 
 export default app;
