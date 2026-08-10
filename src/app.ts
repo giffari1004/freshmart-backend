@@ -12,7 +12,7 @@ import cartRouter from "./features/cart/cart.route";
 import { categoryRouter } from "./features/category/category-route";
 import { productRoute } from "./features/product/product-route";
 import { customerProductRoute } from "./features/product/product-public-route";
-import checkoutrouter from "./features/checkout/route/checkout.route";
+import checkoutRouter from "./features/checkout/route/checkout.route";
 const app = express();
 
 app.use(helmet());
@@ -51,7 +51,7 @@ app.use("/api/v1/admin/products", productRoute);
 app.use("/api/v1/products", customerProductRoute);
 
 // Feature 3 - Cart
-app.use("/api/v1/checkout", checkoutrouter);
+app.use("/api/v1/checkout", checkoutRouter);
 app.use("/api/v1/cart", cartRouter);
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));

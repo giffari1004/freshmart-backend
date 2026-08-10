@@ -2,14 +2,14 @@ import { Router } from "express";
 import { CheckoutController } from "../controller/checkout.controller";
 import { authMiddleware } from "../../../middlewares/auth-middleware";
 
-export const checkoutrouter = Router();
+export const checkoutRouter = Router();
 
 const controller = new CheckoutController();
 
-checkoutrouter.get(
+checkoutRouter.post(
   "/preview",
   authMiddleware,
-  controller.getCheckoutPreview.bind(controller),
+  controller.getCheckoutPreview,
 );
 
-export default checkoutrouter;
+export default checkoutRouter;
