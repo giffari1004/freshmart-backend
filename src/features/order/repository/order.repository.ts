@@ -208,6 +208,8 @@ export class OrderRepository {
           status: "PENDING",
 
           amount: data.totalAmount,
+
+          gatewayOrderId: order.orderNumber,
         },
       });
 

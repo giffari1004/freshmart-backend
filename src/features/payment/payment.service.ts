@@ -1,48 +1,70 @@
 import { BadRequestError } from "../../errors/BadRequestError";
-
+import { NotFoundError } from "../../errors/NotFoundError";
 import { snap } from "../../configs/midtrans-client-configs";
-
-import {
-  CreatePaymentRequest,
-  CreatePaymentResponse,
-} from "./payment.type";
+import { PaymentRepository } from "./payment.repository";
+import { CreatePaymentRequest, CreatePaymentResponse } from "./payment.type";
 
 export class PaymentService {
+  constructor(private readonly paymentRepository = new PaymentRepository()) {}
+
   async createPayment(
+    userId: string,
     payload: CreatePaymentRequest,
   ): Promise<CreatePaymentResponse> {
-    if (!payload.orderId) {
-      throw new BadRequestError(
-        "Order ID is required",
-      );
+    const payment = await this.paymentRepository.getPaymentForOrder(
+      userId,
+      payload.orderId,
+    );
+
+    if (!payment) {
+      throw new NotFoundError("Payment not found");
     }
 
-    if (payload.grossAmount <= 0) {
-      throw new BadRequestError(
-        "Payment amount must be greater than zero",
-      );
+    if (payment.status !== "PENDING") {
+      throw new BadRequestError("Payment is no longer available");
     }
 
-    const transaction =
-      await snap.createTransaction({
-        transaction_details: {
-          order_id:
-            payload.orderId,
+    if (payment.snapToken) {
+      return {
+        orderId: payment.orderId,
 
-          gross_amount:
-            payload.grossAmount,
-        },
+        paymentId: payment.id,
+
+        snapToken: payment.snapToken,
+
+        paymentUrl: payment.paymentUrl ?? "",
+      };
+    }
+
+    const transaction = await snap.createTransaction({
+      transaction_details: {
+        order_id: payment.gatewayOrderId,
+
+        gross_amount: Number(payment.order.totalAmount),
+      },
+    });
+
+    const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const updatedPayment =
+      await this.paymentRepository.updatePaymentGatewayData(payment.id, {
+        gatewayOrderId: payment.gatewayOrderId,
+
+        snapToken: transaction.token,
+
+        paymentUrl: transaction.redirect_url,
+
+        expiredAt,
       });
 
     return {
-      orderId:
-        payload.orderId,
+      orderId: updatedPayment.orderId,
 
-      snapToken:
-        transaction.token,
+      paymentId: updatedPayment.id,
 
-      paymentUrl:
-        transaction.redirect_url,
+      snapToken: updatedPayment.snapToken ?? "",
+
+      paymentUrl: updatedPayment.paymentUrl ?? "",
     };
   }
 }
