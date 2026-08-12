@@ -14,6 +14,8 @@ import { productRoute } from "./features/product/product-route";
 import { customerProductRoute } from "./features/product/product-public-route";
 import checkoutRouter from "./features/checkout/route/checkout.route";
 import orderRouter from "./features/order/route/order.route";
+import paymentRouter from "./features/payment/payment.route";
+
 
 const app = express();
 
@@ -86,6 +88,10 @@ app.use("/api/v1/cart", cartRouter);
 // ===============================
 
 app.use("/api/v1/orders", orderRouter);
+app.use(
+  "/api/v1/payments",
+  paymentRouter,
+);
 
 // ===============================
 // 404 Handler

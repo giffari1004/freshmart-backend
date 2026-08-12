@@ -1,4 +1,5 @@
 import { prisma } from "../../../configs/prisma-client-config";
+import { BadRequestError } from "../../../errors/BadRequestError";
 
 export class OrderRepository {
   async getCartForOrder(userId: string) {
@@ -84,6 +85,7 @@ export class OrderRepository {
     userVoucherId?: string;
 
     items: Array<{
+      storeProductId: string;
       productId: string;
       productName: string;
       unitPrice: number;
@@ -94,6 +96,10 @@ export class OrderRepository {
     return prisma.$transaction(async (tx) => {
       const orderNumber = `ORD-${Date.now()}`;
 
+      // ==============================
+      // 1. Create Order
+      // ==============================
+
       const order = await tx.order.create({
         data: {
           orderNumber,
@@ -102,11 +108,15 @@ export class OrderRepository {
           storeId: data.storeId,
 
           recipientName: data.recipientName,
+
           recipientPhone: data.recipientPhone,
 
           province: data.province,
+
           city: data.city,
+
           district: data.district,
+
           fullAddress: data.fullAddress,
 
           shippingMethodId: data.shippingMethodId,
@@ -122,6 +132,10 @@ export class OrderRepository {
           totalAmount: data.totalAmount,
         },
       });
+
+      // ==============================
+      // 2. Create Order Items
+      // ==============================
 
       await tx.orderItem.createMany({
         data: data.items.map((item) => ({
@@ -139,6 +153,36 @@ export class OrderRepository {
         })),
       });
 
+      // ==============================
+      // 3. Reserve Stock
+      // ==============================
+
+      for (const item of data.items) {
+        const updatedRows = await tx.$executeRaw`
+            UPDATE "store_products"
+            SET
+              "reservedStock" =
+                "reservedStock" + ${item.quantity}
+            WHERE
+              "id" = ${item.storeProductId}
+              AND
+              (
+                "stockQuantity" -
+                "reservedStock"
+              ) >= ${item.quantity}
+          `;
+
+        if (updatedRows === 0) {
+          throw new BadRequestError(
+            `Insufficient stock for product ${item.productName}`,
+          );
+        }
+      }
+
+      // ==============================
+      // 4. Create Order Voucher
+      // ==============================
+
       if (data.userVoucherId) {
         await tx.orderVoucher.create({
           data: {
@@ -151,6 +195,10 @@ export class OrderRepository {
         });
       }
 
+      // ==============================
+      // 5. Create Payment
+      // ==============================
+
       await tx.payment.create({
         data: {
           orderId: order.id,
@@ -162,6 +210,10 @@ export class OrderRepository {
           amount: data.totalAmount,
         },
       });
+
+      // ==============================
+      // 6. Return Created Order
+      // ==============================
 
       return tx.order.findUniqueOrThrow({
         where: {

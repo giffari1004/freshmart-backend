@@ -3,6 +3,7 @@ import { CHECKOUT_MESSAGE } from "../../checkout/constants/checkout.constant";
 
 interface OrderCartItem {
   storeProduct: {
+    id: string;
     storeId: string;
     productId: string;
     priceOverride: unknown;
@@ -16,7 +17,8 @@ interface OrderCartItem {
   quantity: number;
 }
 
-interface OrderItemCalculation {
+export interface OrderItemCalculation {
+  storeProductId: string;
   productId: string;
   productName: string;
   unitPrice: number;
@@ -60,6 +62,9 @@ export function buildOrderItems(
       unitPrice * item.quantity;
 
     return {
+      storeProductId:
+        item.storeProduct.id,
+
       productId:
         item.storeProduct.productId,
 
@@ -68,7 +73,8 @@ export function buildOrderItems(
 
       unitPrice,
 
-      quantity: item.quantity,
+      quantity:
+        item.quantity,
 
       subtotal,
     };
@@ -114,8 +120,11 @@ export function calculateOrderPrice(
 
   return {
     subtotal,
+
     discountAmount,
+
     shippingCost,
+
     totalAmount,
   };
 }
