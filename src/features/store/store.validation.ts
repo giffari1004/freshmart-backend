@@ -22,6 +22,11 @@ export class StoreValidation {
       name: z.string().trim().min(1, "Store name is required"),
       code: storeCode,
       address: z.string().trim().min(1, "Address is required"),
+      city: z.string().trim().min(1, "City is required"),
+      rajaOngkirCityId: z
+        .string()
+        .trim()
+        .min(1, "RajaOngkir city id is required"),
       latitude: z.coerce.number().min(-90).max(90),
       longitude: z.coerce.number().min(-180).max(180),
       maxServiceRadiusKm: z.coerce
@@ -38,6 +43,8 @@ export class StoreValidation {
       name: z.string().trim().min(1).optional(),
       code: storeCode.optional(),
       address: z.string().trim().min(1).optional(),
+      city: z.string().trim().min(1).optional(),
+      rajaOngkirCityId: z.string().trim().min(1).optional(),
       latitude: z.coerce.number().min(-90).max(90).optional(),
       longitude: z.coerce.number().min(-180).max(180).optional(),
       maxServiceRadiusKm: z.coerce.number().positive().optional(),
