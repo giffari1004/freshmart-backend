@@ -15,6 +15,9 @@ import { customerProductRoute } from "./features/product/product-public-route";
 import checkoutRouter from "./features/checkout/route/checkout.route";
 import orderRouter from "./features/order/route/order.route";
 import paymentRouter from "./features/payment/payment.route";
+import { storefrontRoute } from "./features/storefront/storefront.route";
+import { storeRoute } from "./features/store/store.route";
+import { authRoute } from "./features/auth/auth.route";
 
 
 const app = express();
@@ -92,6 +95,9 @@ app.use(
   "/api/v1/payments",
   paymentRouter,
 );
+app.use("/api/v1/storefront", storefrontRoute);
+app.use("/api/v1/stores", storeRoute);
+app.use("/api/v1/auth", authRoute);
 
 // ===============================
 // 404 Handler
