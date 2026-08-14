@@ -55,4 +55,55 @@ export class CheckoutRepository {
       },
     });
   }
+  async getUserAddresses(userId: string) {
+  return prisma.userAddress.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+async getUserVouchers(userId: string) {
+  return prisma.userVoucher.findMany({
+    where: {
+      userId,
+      isUsed: false,
+      voucher: {
+        isActive: true,
+        expiredAt: {
+          gt: new Date(),
+        },
+      },
+    },
+    include: {
+      voucher: true,
+    },
+    orderBy: {
+      id: "desc",
+    },
+  });
+}
+
+async getCheckoutShippingMethods(
+  storeId: string,
+  destinationCity: string,
+) {
+  return prisma.shippingMethod.findMany({
+    where: {
+      storeId,
+      destinationCity,
+      store: {
+        isActive: true,
+        deletedAt: null,
+      },
+    },
+    orderBy: {
+      cost: "asc",
+    },
+  });
+}
 }

@@ -74,3 +74,40 @@ export interface CheckoutPreviewResponse {
 
   store: CheckoutStore;
 }
+
+export interface CheckoutOptionAddress {
+  id: string;
+  label: string;
+  recipientName: string;
+  phone: string;
+  province: string;
+  city: string;
+  district: string;
+  fullAddress: string;
+}
+
+export interface CheckoutOptionShipping {
+  id: string;
+  courierCode: string;
+  serviceCode: string;
+  serviceName: string;
+  cost: number;
+  etd: string | null;
+}
+
+export interface CheckoutOptionVoucher {
+  id: string;
+  code: string;
+  usageType: string;
+  valueType: string;
+  value: number;
+  maxDiscountAmount: number | null;
+  minPurchaseAmount: number | null;
+  expiredAt: string;
+}
+
+export interface CheckoutOptionsResponse {
+  addresses: CheckoutOptionAddress[];
+  shippingMethods: CheckoutOptionShipping[];
+  vouchers: CheckoutOptionVoucher[];
+}
