@@ -7,16 +7,10 @@ interface OrderCartItem {
     storeId: string;
     productId: string;
     priceOverride: unknown;
-
-    product: {
-      name: string;
-      basePrice: unknown;
-    };
+    product: { name: string; basePrice: unknown };
   };
-
   quantity: number;
 }
-
 export interface OrderItemCalculation {
   storeProductId: string;
   productId: string;
@@ -25,7 +19,6 @@ export interface OrderItemCalculation {
   quantity: number;
   subtotal: number;
 }
-
 interface OrderPriceCalculation {
   subtotal: number;
   discountAmount: number;
@@ -37,58 +30,32 @@ export function validateOrderStore(
   items: OrderCartItem[],
   storeId: string,
 ): void {
-  const hasMultipleStores = items.some(
-    (item) =>
-      item.storeProduct.storeId !== storeId,
-  );
-
-  if (hasMultipleStores) {
-    throw new BadRequestError(
-      CHECKOUT_MESSAGE.CART_MULTIPLE_STORES,
-    );
-  }
+  if (items.some((item) => item.storeProduct.storeId !== storeId))
+    throw new BadRequestError(CHECKOUT_MESSAGE.CART_MULTIPLE_STORES);
 }
 
 export function buildOrderItems(
   items: OrderCartItem[],
 ): OrderItemCalculation[] {
-  return items.map((item) => {
-    const unitPrice = Number(
-      item.storeProduct.priceOverride ??
-        item.storeProduct.product.basePrice,
-    );
-
-    const subtotal =
-      unitPrice * item.quantity;
-
-    return {
-      storeProductId:
-        item.storeProduct.id,
-
-      productId:
-        item.storeProduct.productId,
-
-      productName:
-        item.storeProduct.product.name,
-
-      unitPrice,
-
-      quantity:
-        item.quantity,
-
-      subtotal,
-    };
-  });
+  return items.map(toOrderItem);
 }
 
-export function calculateOrderSubtotal(
-  items: OrderItemCalculation[],
-): number {
-  return items.reduce(
-    (total, item) =>
-      total + item.subtotal,
-    0,
+function toOrderItem(item: OrderCartItem): OrderItemCalculation {
+  const unitPrice = Number(
+    item.storeProduct.priceOverride ?? item.storeProduct.product.basePrice,
   );
+  return {
+    storeProductId: item.storeProduct.id,
+    productId: item.storeProduct.productId,
+    productName: item.storeProduct.product.name,
+    unitPrice,
+    quantity: item.quantity,
+    subtotal: unitPrice * item.quantity,
+  };
+}
+
+export function calculateOrderSubtotal(items: OrderItemCalculation[]): number {
+  return items.reduce((total, item) => total + item.subtotal, 0);
 }
 
 export function calculateOrderTotal(
@@ -96,11 +63,7 @@ export function calculateOrderTotal(
   discountAmount: number,
   shippingCost: number,
 ): number {
-  return (
-    subtotal -
-    discountAmount +
-    shippingCost
-  );
+  return subtotal - discountAmount + shippingCost;
 }
 
 export function calculateOrderPrice(
@@ -108,23 +71,11 @@ export function calculateOrderPrice(
   discountAmount: number,
   shippingCost: number,
 ): OrderPriceCalculation {
-  const subtotal =
-    calculateOrderSubtotal(items);
-
-  const totalAmount =
-    calculateOrderTotal(
-      subtotal,
-      discountAmount,
-      shippingCost,
-    );
-
+  const subtotal = calculateOrderSubtotal(items);
   return {
     subtotal,
-
     discountAmount,
-
     shippingCost,
-
-    totalAmount,
+    totalAmount: calculateOrderTotal(subtotal, discountAmount, shippingCost),
   };
 }

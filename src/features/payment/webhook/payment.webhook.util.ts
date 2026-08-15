@@ -6,15 +6,9 @@ export function generateMidtransSignature(
   grossAmount: string,
   serverKey: string,
 ) {
-  const signatureString =
-    orderId +
-    statusCode +
-    grossAmount +
-    serverKey;
-
   return crypto
     .createHash("sha512")
-    .update(signatureString)
+    .update(orderId + statusCode + grossAmount + serverKey)
     .digest("hex");
 }
 
@@ -25,16 +19,8 @@ export function verifyMidtransSignature(
   signatureKey: string,
   serverKey: string,
 ) {
-  const generatedSignature =
-    generateMidtransSignature(
-      orderId,
-      statusCode,
-      grossAmount,
-      serverKey,
-    );
-
   return (
-    generatedSignature ===
+    generateMidtransSignature(orderId, statusCode, grossAmount, serverKey) ===
     signatureKey
   );
 }

@@ -1,43 +1,16 @@
-import {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
-
-import {
-  PaymentWebhookService,
-} from "./payment.webhook.service";
-
-import {
-  MidtransWebhookRequest,
-} from "./payment.webhook.type";
+import { NextFunction, Request, Response } from "express";
+import { PaymentWebhookService } from "./payment.webhook.service";
 
 export class PaymentWebhookController {
   constructor(
-    private readonly paymentWebhookService =
-      new PaymentWebhookService(),
+    private readonly paymentWebhookService = new PaymentWebhookService(),
   ) {}
 
-  handleWebhook = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  handleWebhook = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const payload =
-        req.body as MidtransWebhookRequest;
-
-      const result =
-        await this.paymentWebhookService
-          .handleWebhook(payload);
-
-      return res.status(200).json({
-        success:
-          result.success,
-
-        message:
-          result.message,
-      });
+      return res
+        .status(200)
+        .json(await this.paymentWebhookService.handleWebhook(req.body));
     } catch (error) {
       next(error);
     }

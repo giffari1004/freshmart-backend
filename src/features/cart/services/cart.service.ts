@@ -92,19 +92,12 @@ export class CartService {
     quantity: number,
   ) {
     const item = await this.cartRepository.findCartItem(cartId, storeProductId);
-
-    if (!item) {
-      return this.cartRepository.createCartItem(
-        cartId,
-        storeProductId,
-        quantity,
-      );
-    }
-
-    return this.cartRepository.updateCartItemQuantity(
-      item.id,
-      item.quantity + quantity,
-    );
+    return item
+      ? this.cartRepository.updateCartItemQuantity(
+          item.id,
+          item.quantity + quantity,
+        )
+      : this.cartRepository.createCartItem(cartId, storeProductId, quantity);
   }
   private async getCartItem(itemId: string, userId: string) {
     const item = await this.cartRepository.findCartItemById(itemId, userId);

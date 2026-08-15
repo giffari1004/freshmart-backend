@@ -3,9 +3,7 @@ import { z } from "zod";
 export const paymentWebhookSchema = z.object({
   order_id: z.string().min(1),
 
-  transaction_id: z
-    .string()
-    .optional(),
+  transaction_id: z.string().optional(),
 
   transaction_status: z.string().min(1),
 
@@ -15,23 +13,13 @@ export const paymentWebhookSchema = z.object({
 
   signature_key: z.string().min(1),
 
-  payment_type: z
-    .string()
-    .optional(),
+  payment_type: z.string().optional(),
 
-  fraud_status: z
-    .string()
-    .optional(),
+  fraud_status: z.string().optional(),
 
-  transaction_time: z
-    .string()
-    .optional(),
+  transaction_time: z.string().optional(),
 
-  settlement_time: z
-    .string()
-    .optional(),
+  settlement_time: z.string().optional(),
 
-  currency: z
-    .string()
-    .optional(),
+  currency: z.string().optional(),
 });

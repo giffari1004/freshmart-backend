@@ -1,40 +1,20 @@
-import { Request, Response } from "express";
-
+import { NextFunction, Request, Response } from "express";
 import { OrderService } from "../services/order.services";
-import { CreateOrderRequest } from "../order.type";
 
 export class OrderController {
-  constructor(
-    private readonly orderService =
-      new OrderService(),
-  ) {}
+  constructor(private readonly orderService = new OrderService()) {}
 
-  createOrder = async (
-    req: Request,
-    res: Response,
-  ) => {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+  createOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return res
+        .status(201)
+        .json({
+          success: true,
+          message: "Order created successfully",
+          data: await this.orderService.createOrder(req.user!.id, req.body),
+        });
+    } catch (error) {
+      next(error);
     }
-
-    const payload =
-      req.body as CreateOrderRequest;
-
-    const order =
-      await this.orderService.createOrder(
-        userId,
-        payload,
-      );
-
-    return res.status(201).json({
-      success: true,
-      message: "Order created successfully",
-      data: order,
-    });
   };
 }

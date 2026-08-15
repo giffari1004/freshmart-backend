@@ -1,5 +1,4 @@
 import { Prisma } from "../../../../generated/prisma";
-
 import {
   CheckoutAddress,
   CheckoutDiscount,
@@ -8,23 +7,16 @@ import {
   CheckoutShipping,
   CheckoutStore,
 } from "../checkout.types";
+import { toCheckoutItem } from "./checkout.item.mapper";
 
 type CheckoutCart = Prisma.CartGetPayload<{
   include: {
     items: {
       include: {
-        storeProduct: {
-          include: {
-            product: {
-              include: {
-                images: true,
-              },
-            },
-          },
-        },
-      },
-    },
-  },
+        storeProduct: { include: { product: { include: { images: true } } } };
+      };
+    };
+  };
 }>;
 
 interface CheckoutPreviewData {
@@ -39,70 +31,10 @@ export class CheckoutMapper {
     cart: CheckoutCart,
     data: CheckoutPreviewData,
   ): CheckoutPreviewResponse {
-    const items: CheckoutItem[] =
-      cart.items.map((item) => {
-        const unitPrice = Number(
-          item.storeProduct.priceOverride ??
-            item.storeProduct.product.basePrice,
-        );
-
-        const subtotal =
-          unitPrice * item.quantity;
-
-        const weight =
-          item.storeProduct.product.weight *
-          item.quantity;
-
-        return {
-          id: item.id,
-          storeProductId:
-            item.storeProductId,
-          productId:
-            item.storeProduct.productId,
-
-          productName:
-            item.storeProduct.product.name,
-
-          imageUrl:
-            item.storeProduct.product.images?.[0]
-              ?.imageUrl ?? null,
-
-          quantity: item.quantity,
-
-          unitPrice,
-
-          subtotal,
-
-          weight,
-        };
-      });
-
-    const totalItems =
-      items.reduce(
-        (total, item) =>
-          total + item.quantity,
-        0,
-      );
-
-    const totalWeight =
-      items.reduce(
-        (total, item) =>
-          total + item.weight,
-        0,
-      );
-
-    const subtotal =
-      items.reduce(
-        (total, item) =>
-          total + item.subtotal,
-        0,
-      );
-
-    const totalAmount =
-      subtotal -
-      data.discount.amount +
-      data.shipping.cost;
-
+    const items = cart.items.map(toCheckoutItem);
+    const totalItems = sum(items, "quantity");
+    const totalWeight = sum(items, "weight");
+    const subtotal = sum(items, "subtotal");
     return {
       items,
       totalItems,
@@ -110,9 +42,16 @@ export class CheckoutMapper {
       subtotal,
       discount: data.discount,
       shipping: data.shipping,
-      totalAmount,
+      totalAmount: subtotal - data.discount.amount + data.shipping.cost,
       address: data.address,
       store: data.store,
     };
   }
+}
+
+function sum(
+  items: CheckoutItem[],
+  key: "quantity" | "weight" | "subtotal",
+): number {
+  return items.reduce((total, item) => total + item[key], 0);
 }

@@ -1,159 +1,98 @@
-import { BadRequestError } from "../../../errors/BadRequestError";
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { CHECKOUT_MESSAGE } from "../constants/checkout.constant";
+import { CheckoutPreviewRequest } from "../checkout.types";
 import { CheckoutMapper } from "../mappers/checkout.mappers";
 import { CheckoutRepository } from "../repository/checkout.repository";
-import { CheckoutPreviewRequest } from "../checkout.types";
-import { calculateDistanceKm, isWithinServiceRadius } from "../utils/checkout.distance.util";
-import { validateCheckoutStock } from "../utils/checkout.stock.util";
-import { validateSingleStore } from "../utils/checkout.store.util";
+import {
+  CheckoutAddress,
+  CheckoutStore,
+  CheckoutShipping,
+} from "../checkout.types";
 import { calculateDiscount } from "../utils/checkout.voucher.util";
+import {
+  getAddress,
+  getFirstStore,
+  getShipping,
+  validateStock,
+  validateStoreDistance,
+} from "../helper/checkout.helper";
 
 export class CheckoutService {
-  constructor(
-    private readonly checkoutRepository =
-      new CheckoutRepository(),
-  ) {}
+  constructor(private readonly checkoutRepository = new CheckoutRepository()) {}
 
-  async getCheckoutPreview(
-    userId: string,
-    payload: CheckoutPreviewRequest,
-  ) {
-    const cart =
-      await this.checkoutRepository.getCheckoutPreview(
-        userId,
-      );
-
-    if (!cart || cart.items.length === 0) {
-      throw new NotFoundError(
-        CHECKOUT_MESSAGE.CART_EMPTY,
-      );
-    }
-
-    const firstItem = cart.items[0];
-
-    if (!firstItem) {
-      throw new NotFoundError(
-        CHECKOUT_MESSAGE.CART_EMPTY,
-      );
-    }
-
-    const store =
-      firstItem.storeProduct.store;
-
-    if (!store.isActive) {
-      throw new BadRequestError(
-        CHECKOUT_MESSAGE.STORE_NOT_FOUND,
-      );
-    }
-
-    validateSingleStore(
-      cart.items,
+  async getCheckoutPreview(userId: string, payload: CheckoutPreviewRequest) {
+    const cart = await this.checkoutRepository.getCheckoutPreview(userId);
+    if (!cart) throw new NotFoundError(CHECKOUT_MESSAGE.CART_EMPTY);
+    const store = getFirstStore(cart);
+    const address = await getAddress(
+      this.checkoutRepository,
+      userId,
+      payload.addressId,
+    );
+    const distanceKm = validateStoreDistance(address, store);
+    validateStock(cart);
+    const shipping = await getShipping(
+      this.checkoutRepository,
+      payload.shippingMethodId,
       store.id,
+      address.city,
     );
-
-    const address =
-      await this.checkoutRepository.getUserAddress(
-        userId,
-        payload.addressId,
-      );
-
-    if (!address) {
-      throw new NotFoundError(
-        CHECKOUT_MESSAGE.ADDRESS_NOT_FOUND,
-      );
-    }
-
-    const distanceKm =
-      calculateDistanceKm(
-        address.latitude,
-        address.longitude,
-        store.latitude,
-        store.longitude,
-      );
-
-    if (
-      !isWithinServiceRadius(
-        distanceKm,
-        store.maxServiceRadiusKm,
-      )
-    ) {
-      throw new BadRequestError(
-        CHECKOUT_MESSAGE.STORE_OUT_OF_RADIUS,
-      );
-    }
-
-    validateCheckoutStock(
+    const discount = await calculateDiscount(
+      this.checkoutRepository,
+      userId,
+      payload.userVoucherId,
       cart.items,
     );
-
-    const shippingMethod =
-      await this.checkoutRepository.getShippingMethod(
-        payload.shippingMethodId,
-        store.id,
-        address.city,
-      );
-
-    if (!shippingMethod) {
-      throw new NotFoundError(
-        CHECKOUT_MESSAGE.SHIPPING_METHOD_INVALID,
-      );
-    }
-
-    const discount =
-      await calculateDiscount(
-        this.checkoutRepository,
-        userId,
-        payload.userVoucherId,
-        cart.items,
-      );
-
-    return CheckoutMapper.toCheckoutPreview(
-      cart,
-      {
-        address: {
-          id: address.id,
-          label: address.label,
-          recipientName:
-            address.recipientName,
-          phone: address.phone,
-          province: address.province,
-          city: address.city,
-          district: address.district,
-          fullAddress:
-            address.fullAddress,
-          latitude:
-            address.latitude,
-          longitude:
-            address.longitude,
-        },
-
-        store: {
-          id: store.id,
-          name: store.name,
-          code: store.code,
-          distanceKm: Number(
-            distanceKm.toFixed(2),
-          ),
-        },
-
-        shipping: {
-          id: shippingMethod.id,
-          courierCode:
-            shippingMethod.courierCode,
-          serviceCode:
-            shippingMethod.serviceCode,
-          serviceName:
-            shippingMethod.serviceName,
-          cost: Number(
-            shippingMethod.cost,
-          ),
-          etd: shippingMethod.etd,
-        },
-
-        discount,
-      },
-    );
+    return CheckoutMapper.toCheckoutPreview(cart, {
+      address: mapAddress(address),
+      store: mapStore(store, distanceKm),
+      shipping: mapShipping(shipping),
+      discount,
+    });
   }
-  
+}
+
+type AddressRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getUserAddress"]>>
+>;
+type StoreRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getCheckoutPreview"]>>
+>["items"][number]["storeProduct"]["store"];
+type ShippingRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getShippingMethod"]>>
+>;
+
+function mapAddress(address: AddressRecord): CheckoutAddress {
+  return {
+    id: address.id,
+    label: address.label,
+    recipientName: address.recipientName,
+    phone: address.phone,
+    province: address.province,
+    city: address.city,
+    district: address.district,
+    fullAddress: address.fullAddress,
+    latitude: address.latitude,
+    longitude: address.longitude,
+  };
+}
+
+function mapStore(store: StoreRecord, distanceKm: number): CheckoutStore {
+  return {
+    id: store.id,
+    name: store.name,
+    code: store.code,
+    distanceKm: Number(distanceKm.toFixed(2)),
+  };
+}
+
+function mapShipping(shipping: ShippingRecord): CheckoutShipping {
+  return {
+    id: shipping.id,
+    courierCode: shipping.courierCode,
+    serviceCode: shipping.serviceCode,
+    serviceName: shipping.serviceName,
+    cost: Number(shipping.cost),
+    etd: shipping.etd,
+  };
 }
