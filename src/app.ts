@@ -18,6 +18,8 @@ import paymentRouter from "./features/payment/payment.route";
 import { storefrontRoute } from "./features/storefront/storefront.route";
 import { storeRoute } from "./features/store/store.route";
 import { authRoute } from "./features/auth/auth.route";
+import { discountRoute } from "./features/discount/discount-route";
+import { discountPublicRoute } from "./features/discount/discount-public-route";
 
 
 const app = express();
@@ -83,7 +85,6 @@ app.use("/api/v1/products", customerProductRoute);
 // ===============================
 
 app.use("/api/v1/checkout", checkoutRouter);
-
 app.use("/api/v1/cart", cartRouter);
 
 // ===============================
@@ -98,7 +99,8 @@ app.use(
 app.use("/api/v1/storefront", storefrontRoute);
 app.use("/api/v1/stores", storeRoute);
 app.use("/api/v1/auth", authRoute);
-
+app.use('/api/v1/admin/discounts', discountRoute);   
+app.use('/api/v1/discounts', discountPublicRoute);       
 // ===============================
 // 404 Handler
 // ===============================
