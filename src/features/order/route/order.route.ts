@@ -6,10 +6,10 @@ import { createOrderSchema } from "../validation/order.validation";
 
 const router = Router();
 const orderController = new OrderController();
-router.post(
-  "/",
-  authMiddleware,
-  validateBody(createOrderSchema),
-  orderController.createOrder,
-);
+
+router.use(authMiddleware);
+router.get("/", orderController.getOrders);
+router.get("/:id", orderController.getOrderDetail);
+router.post("/", validateBody(createOrderSchema), orderController.createOrder);
+
 export default router;
