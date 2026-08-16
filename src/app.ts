@@ -20,6 +20,7 @@ import { storeRoute } from "./features/store/store.route";
 import { authRoute } from "./features/auth/auth.route";
 import { discountRoute } from "./features/discount/discount-route";
 import { discountPublicRoute } from "./features/discount/discount-public-route";
+import { minimumPurchaseDiscountRoute } from "./features/discount/minimum-discount-route";
 
 
 const app = express();
@@ -100,7 +101,8 @@ app.use("/api/v1/storefront", storefrontRoute);
 app.use("/api/v1/stores", storeRoute);
 app.use("/api/v1/auth", authRoute);
 app.use('/api/v1/admin/discounts', discountRoute);   
-app.use('/api/v1/discounts', discountPublicRoute);       
+app.use('/api/v1/discounts', discountPublicRoute);  
+app.use('/api/v1/admin/discounts/minimum-purchase', minimumPurchaseDiscountRoute);
 // ===============================
 // 404 Handler
 // ===============================
