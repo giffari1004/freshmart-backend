@@ -21,3 +21,15 @@ export const OPENCAGE_API_KEY = process.env.OPENCAGE_API_KEY || "";
 export const RAJAONGKIR_API_KEY = process.env.RAJAONGKIR_API_KEY || "";
 export const RAJAONGKIR_BASE_URL =
   process.env.RAJAONGKIR_BASE_URL || "https://api.rajaongkir.com/starter";
+
+// --- Ditambahkan untuk features/social-login ---
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+export const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  "http://localhost:8001/api/v1/social-login/google/callback";
+export const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || "";
+export const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || "";
+export const FACEBOOK_REDIRECT_URI =
+  process.env.FACEBOOK_REDIRECT_URI ||
+  "http://localhost:8001/api/v1/social-login/facebook/callback";
