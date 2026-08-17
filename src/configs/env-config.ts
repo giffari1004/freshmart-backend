@@ -15,3 +15,9 @@ export const SMTP_HOST = process.env.SMTP_HOST || "";
 export const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 export const SMTP_USER = process.env.SMTP_USER || "";
 export const SMTP_PASS = process.env.SMTP_PASS || "";
+
+// --- Ditambahkan untuk features/address ---
+export const OPENCAGE_API_KEY = process.env.OPENCAGE_API_KEY || "";
+export const RAJAONGKIR_API_KEY = process.env.RAJAONGKIR_API_KEY || "";
+export const RAJAONGKIR_BASE_URL =
+  process.env.RAJAONGKIR_BASE_URL || "https://api.rajaongkir.com/starter";
