@@ -1,5 +1,5 @@
 import z from "zod";
-import { ValueType } from "../../../generated/prisma";
+import { ValueType } from "../../../../generated/prisma";
 
 export class MinimumDiscountValidation {
   static readonly CREATE = z.object({

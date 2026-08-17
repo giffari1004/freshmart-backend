@@ -1,5 +1,5 @@
 import z from "zod";
-import { ValueType } from "../../../generated/prisma";
+import { ValueType } from "../../../../generated/prisma";
 
 export class DiscountValidation {
   static readonly CREATE_DISCOUNT = z.object({
@@ -17,8 +17,7 @@ export class DiscountValidation {
         path: ["endDate"],
       })
       .refine(
-        (data) =>
-          data.valueType === "PERCENTAGE" ? data.value <= 100 : true,
+        (data) => (data.valueType === "PERCENTAGE" ? data.value <= 100 : true),
         {
           message: "Percentage discount cannot exceed 100",
           path: ["value"],

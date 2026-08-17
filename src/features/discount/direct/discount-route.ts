@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { authMiddleware } from "../../middlewares/auth-middleware";
-import { requireRole } from "../../middlewares/role-middleware";
+import { authMiddleware } from "../../../middlewares/auth-middleware";
+import { requireRole } from "../../../middlewares/role-middleware";
 import { DiscountController } from "./discount-controller";
 
 export const discountRoute = Router();
