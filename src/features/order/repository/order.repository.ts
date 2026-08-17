@@ -1,5 +1,20 @@
 import { prisma } from "../../../configs/prisma-client-config";
-import { runCreateOrderTransaction, CreateOrderTransactionData } from "../order.transaction";
+import {
+  runCreateOrderTransaction,
+  CreateOrderTransactionData,
+} from "../order.transaction";
+import { cancelOrderTransaction } from "../order.cancellation";
+
+const ORDER_LIST_SELECT = {
+  id: true,
+  orderNumber: true,
+  status: true,
+  subtotal: true,
+  discountAmount: true,
+  shippingCost: true,
+  totalAmount: true,
+  createdAt: true,
+} as const;
 
 const cartInclude = { items: { include: { storeProduct: { include: { product: true, store: true } } } } } as const;
 
@@ -28,17 +43,39 @@ export class OrderRepository {
     return prisma.order.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        orderNumber: true,
-        status: true,
-        subtotal: true,
-        discountAmount: true,
-        shippingCost: true,
-        totalAmount: true,
-        createdAt: true,
-      },
+      select: ORDER_LIST_SELECT,
     });
+  }
+
+
+
+  async getOrderForCancellation(orderId: string, userId: string) {
+    return prisma.order.findFirst({
+      where: { id: orderId, userId },
+      select: { id: true, status: true },
+    });
+  }
+
+  async cancelOrder(orderId: string, userId: string) {
+    return prisma.$transaction((tx) =>
+      cancelOrderTransaction(tx, orderId, userId),
+    );
+  }
+
+  async getOrderForConfirmation(orderId: string, userId: string) {
+    return prisma.order.findFirst({
+      where: { id: orderId, userId },
+      select: { id: true, status: true },
+    });
+  }
+
+  async confirmOrder(orderId: string, userId: string) {
+    const result = await prisma.order.updateMany({
+      where: { id: orderId, userId, status: "SHIPPED" },
+      data: { status: "CONFIRMED" },
+    });
+    if (!result.count) return null;
+    return prisma.order.findUnique({ where: { id: orderId } });
   }
 
   async getOrderDetail(orderId: string, userId: string) {

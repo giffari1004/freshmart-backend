@@ -7,13 +7,11 @@ export class OrderController {
   getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.orderService.getOrders(req.user!.id);
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Orders retrieved successfully",
-          data,
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Orders retrieved successfully",
+        data,
+      });
     } catch (error) {
       next(error);
     }
@@ -45,15 +43,47 @@ export class OrderController {
     }
   };
 
+  cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orderId = this.getOrderId(req);
+      const data = await this.orderService.cancelOrder(orderId, req.user!.id);
+      return res.status(200).json({
+        success: true,
+        message: "Order cancelled successfully",
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  confirmOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orderId = this.getOrderId(req);
+      const data = await this.orderService.confirmOrder(orderId, req.user!.id);
+      return res.status(200).json({
+        success: true,
+        message: "Order confirmed successfully",
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  private getOrderId(req: Request) {
+    const orderId = req.params.id;
+    if (typeof orderId !== "string") throw new Error("Invalid order ID");
+    return orderId;
+  }
+
   createOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      return res
-        .status(201)
-        .json({
-          success: true,
-          message: "Order created successfully",
-          data: await this.orderService.createOrder(req.user!.id, req.body),
-        });
+      return res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        data: await this.orderService.createOrder(req.user!.id, req.body),
+      });
     } catch (error) {
       next(error);
     }

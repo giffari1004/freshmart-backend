@@ -64,17 +64,9 @@ export class PaymentWebhookService {
     payload: MidtransWebhookRequest,
     status: WebhookStatus,
   ) {
-    await this.paymentWebhookRepository.processWebhook({
-      paymentId,
-      orderId,
-      transactionId: payload.transaction_id ?? null,
-      transactionStatus: payload.transaction_status,
-      statusCode: payload.status_code,
-      grossAmount: Number(payload.gross_amount),
-      signatureKey: payload.signature_key,
-      payload: payload as unknown as Prisma.InputJsonValue,
-      ...status,
-    });
+    await this.paymentWebhookRepository.processWebhook(
+      buildWebhookData(paymentId, orderId, payload, status),
+    );
   }
 
   private mapPaymentStatus(transactionStatus: string): WebhookStatus {
@@ -107,4 +99,19 @@ export class PaymentWebhookService {
       );
     return status;
   }
+}
+
+
+function buildWebhookData(
+  paymentId: string,
+  orderId: string,
+  payload: MidtransWebhookRequest,
+  status: WebhookStatus,
+) {
+  return {
+    paymentId, orderId, transactionId: payload.transaction_id ?? null,
+    transactionStatus: payload.transaction_status, statusCode: payload.status_code,
+    grossAmount: Number(payload.gross_amount), signatureKey: payload.signature_key,
+    payload: payload as unknown as Prisma.InputJsonValue, ...status,
+  };
 }

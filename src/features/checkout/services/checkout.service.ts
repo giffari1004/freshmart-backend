@@ -3,11 +3,6 @@ import { CHECKOUT_MESSAGE } from "../constants/checkout.constant";
 import { CheckoutPreviewRequest } from "../checkout.types";
 import { CheckoutMapper } from "../mappers/checkout.mappers";
 import { CheckoutRepository } from "../repository/checkout.repository";
-import {
-  CheckoutAddress,
-  CheckoutStore,
-  CheckoutShipping,
-} from "../checkout.types";
 import { calculateDiscount } from "../utils/checkout.voucher.util";
 import {
   getAddress,
@@ -16,33 +11,76 @@ import {
   validateStock,
   validateStoreDistance,
 } from "../helper/checkout.helper";
+import { CheckoutAddress, CheckoutShipping, CheckoutStore } from "../checkout.types";
+
+type CartRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getCheckoutPreview"]>>
+>;
+type AddressRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getUserAddress"]>>
+>;
+type StoreRecord = CartRecord["items"][number]["storeProduct"]["store"];
+type ShippingRecord = NonNullable<
+  Awaited<ReturnType<CheckoutRepository["getShippingMethod"]>>
+>;
 
 export class CheckoutService {
   constructor(private readonly checkoutRepository = new CheckoutRepository()) {}
 
   async getCheckoutPreview(userId: string, payload: CheckoutPreviewRequest) {
+    const cart = await this.getCart(userId);
+    const store = getFirstStore(cart);
+    const address = await this.getAddress(userId, payload.addressId);
+    const shipping = await this.getShipping(payload, store.id, address.city);
+    const discount = await this.getDiscount(userId, payload, cart);
+    validateStock(cart);
+    return this.buildPreview(cart, address, store, shipping, discount);
+  }
+
+  private async getCart(userId: string) {
     const cart = await this.checkoutRepository.getCheckoutPreview(userId);
     if (!cart) throw new NotFoundError(CHECKOUT_MESSAGE.CART_EMPTY);
-    const store = getFirstStore(cart);
-    const address = await getAddress(
-      this.checkoutRepository,
-      userId,
-      payload.addressId,
-    );
-    const distanceKm = validateStoreDistance(address, store);
-    validateStock(cart);
-    const shipping = await getShipping(
+    return cart;
+  }
+
+  private getAddress(userId: string, addressId: string) {
+    return getAddress(this.checkoutRepository, userId, addressId);
+  }
+
+  private getShipping(
+    payload: CheckoutPreviewRequest,
+    storeId: string,
+    city: string,
+  ) {
+    return getShipping(
       this.checkoutRepository,
       payload.shippingMethodId,
-      store.id,
-      address.city,
+      storeId,
+      city,
     );
-    const discount = await calculateDiscount(
+  }
+
+  private getDiscount(
+    userId: string,
+    payload: CheckoutPreviewRequest,
+    cart: CartRecord,
+  ) {
+    return calculateDiscount(
       this.checkoutRepository,
       userId,
       payload.userVoucherId,
       cart.items,
     );
+  }
+
+  private buildPreview(
+    cart: CartRecord,
+    address: AddressRecord,
+    store: StoreRecord,
+    shipping: ShippingRecord,
+    discount: Awaited<ReturnType<typeof calculateDiscount>>,
+  ) {
+    const distanceKm = validateStoreDistance(address, store);
     return CheckoutMapper.toCheckoutPreview(cart, {
       address: mapAddress(address),
       store: mapStore(store, distanceKm),
@@ -51,16 +89,6 @@ export class CheckoutService {
     });
   }
 }
-
-type AddressRecord = NonNullable<
-  Awaited<ReturnType<CheckoutRepository["getUserAddress"]>>
->;
-type StoreRecord = NonNullable<
-  Awaited<ReturnType<CheckoutRepository["getCheckoutPreview"]>>
->["items"][number]["storeProduct"]["store"];
-type ShippingRecord = NonNullable<
-  Awaited<ReturnType<CheckoutRepository["getShippingMethod"]>>
->;
 
 function mapAddress(address: AddressRecord): CheckoutAddress {
   return {
