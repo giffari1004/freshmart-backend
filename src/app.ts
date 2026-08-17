@@ -23,6 +23,7 @@ import { discountPublicRoute } from "./features/discount/discount-public-route";
 import { minimumPurchaseDiscountRoute } from "./features/discount/minimum-discount-route";
 import { addressRoute } from "./features/address/address.routes";
 import { profileRoute } from "./features/profile/profile.route";
+import { authorizationRoute } from "./features/authorization/authorization.route";
 
 const app = express();
 
@@ -106,6 +107,7 @@ app.use('/api/v1/discounts', discountPublicRoute);
 app.use('/api/v1/admin/discounts/minimum-purchase', minimumPurchaseDiscountRoute);
 app.use("/api/v1/addresses", addressRoute);
 app.use("/api/v1/profile", profileRoute);
+app.use("/api/v1/authorization", authorizationRoute);
 // ===============================
 // 404 Handler
 // ===============================
