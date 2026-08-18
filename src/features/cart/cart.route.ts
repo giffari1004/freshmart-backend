@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { CartController } from "./cart.controller";
 import {authMiddleware } from "../../middlewares/auth-middleware";
+import { requireVerified } from "../../middlewares/verified-middleware";
 
 const router = Router();
 
@@ -15,6 +16,7 @@ router.get(
 
 router.post(
   "/items",
+  requireVerified,
   cartController.addToCart,
 );
 

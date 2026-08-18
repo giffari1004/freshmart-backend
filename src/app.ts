@@ -23,6 +23,11 @@ import { discountPublicRoute } from "./features/discount/direct/discount-public-
 import { minimumPurchaseDiscountRoute } from "./features/discount/minimum-purchase/minimum-purchase-route";
 import { bogoRoute } from "./features/discount/bogo/bogo-route";
 import { bogoPublicRoute } from "./features/discount/bogo/bogo-public-route";
+import { addressRoute } from "./features/address/address.routes";
+import { profileRoute } from "./features/profile/profile.route";
+import { authorizationRoute } from "./features/authorization/authorization.route";
+import { socialLoginRoute } from "./features/social-login/social-login.route";
+
 const app = express();
 app.use(helmet());
 app.use(
@@ -61,9 +66,17 @@ app.use("/api/v1/stores", storeRoute);
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/admin/discounts", discountRoute);
 app.use("/api/v1/discounts", discountPublicRoute);
-app.use("/api/v1/admin/discounts/minimum-purchase",minimumPurchaseDiscountRoute,);
+app.use("/api/v1/admin/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
 app.use('/api/v1/admin/bogo', bogoRoute);
-app.use('/api/v1/bogo', bogoPublicRoute);            
+app.use('/api/v1/bogo', bogoPublicRoute);
+app.use("/api/v1/addresses", addressRoute);
+app.use("/api/v1/profile", profileRoute);
+app.use("/api/v1/authorization", authorizationRoute);
+app.use("/api/v1/social-login", socialLoginRoute);
+
+// ===============================
+// 404 Handler
+// ===============================
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
 });

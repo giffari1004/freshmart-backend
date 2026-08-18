@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { TokenType } from "../../../generated/prisma";
 import { prisma } from "../../configs/prisma-client-config";
@@ -6,11 +5,16 @@ import { JWT_SECRET } from "../../configs/env-config";
 import { BcryptUtil } from "../../utils/bcrypt-util";
 import { MailerUtil } from "../../utils/mailer";
 import { generateUniqueReferralCode } from "../../utils/referral-code";
+import {
+  issueAuthToken,
+  consumeAuthToken,
+  invalidateActiveTokens,
+} from "../../utils/token";
 import { BadRequestError } from "../../errors/BadRequestError";
 import { UnAuthorizedError } from "../../errors/UnauthorizedError";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
-import { TOKEN_EXPIRY_HOURS, JWT_EXPIRES_IN } from "./auth.constant";
+import { JWT_EXPIRES_IN } from "./auth.constant";
 import type {
   registerSchema,
   verifyEmailSchema,
@@ -61,10 +65,7 @@ export class AuthService {
       select: SAFE_USER_SELECT,
     });
 
-    const token = await AuthService.issueToken(
-      user.id,
-      TokenType.EMAIL_VERIFICATION,
-    );
+    const token = await issueAuthToken(user.id, TokenType.EMAIL_VERIFICATION);
     await MailerUtil.sendVerificationEmail(email, token);
 
     // TODO: kalau referredById terisi, pemberian voucher reward ke
@@ -77,7 +78,7 @@ export class AuthService {
   static async verifyEmail({ body }: verifyEmailSchema) {
     const { token, password } = body;
 
-    const authToken = await AuthService.consumeToken(
+    const authToken = await consumeAuthToken(
       token,
       TokenType.EMAIL_VERIFICATION,
     );
@@ -104,21 +105,9 @@ export class AuthService {
       throw new BadRequestError("This email is already verified");
     }
 
-    // Invalidasi token verifikasi lama yang belum dipakai, biar cuma ada
-    // 1 token valid aktif per user pada satu waktu.
-    await prisma.authToken.updateMany({
-      where: {
-        userId: user.id,
-        type: TokenType.EMAIL_VERIFICATION,
-        usedAt: null,
-      },
-      data: { usedAt: new Date() },
-    });
+    await invalidateActiveTokens(user.id, TokenType.EMAIL_VERIFICATION);
 
-    const token = await AuthService.issueToken(
-      user.id,
-      TokenType.EMAIL_VERIFICATION,
-    );
+    const token = await issueAuthToken(user.id, TokenType.EMAIL_VERIFICATION);
     await MailerUtil.sendVerificationEmail(email, token);
 
     return { message: "Verification email has been resent" };
@@ -169,19 +158,9 @@ export class AuthService {
     // tetap balas sukses secara generik — jangan bocorkan info akun mana
     // yang valid.
     if (user && !user.deletedAt && user.authProvider === "EMAIL") {
-      await prisma.authToken.updateMany({
-        where: {
-          userId: user.id,
-          type: TokenType.PASSWORD_RESET,
-          usedAt: null,
-        },
-        data: { usedAt: new Date() },
-      });
+      await invalidateActiveTokens(user.id, TokenType.PASSWORD_RESET);
 
-      const token = await AuthService.issueToken(
-        user.id,
-        TokenType.PASSWORD_RESET,
-      );
+      const token = await issueAuthToken(user.id, TokenType.PASSWORD_RESET);
       await MailerUtil.sendResetPasswordEmail(email, token);
     }
 
@@ -193,10 +172,7 @@ export class AuthService {
   static async confirmResetPassword({ body }: confirmResetPasswordSchema) {
     const { token, password } = body;
 
-    const authToken = await AuthService.consumeToken(
-      token,
-      TokenType.PASSWORD_RESET,
-    );
+    const authToken = await consumeAuthToken(token, TokenType.PASSWORD_RESET);
 
     const passwordHash = await BcryptUtil.hashPassword(password);
 
@@ -206,38 +182,5 @@ export class AuthService {
     });
 
     return { message: "Password has been reset successfully" };
-  }
-
-  // ---- helper privat, dipakai internal service ini saja ----
-
-  private static async issueToken(userId: string, type: TokenType) {
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(
-      Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000,
-    );
-
-    await prisma.authToken.create({ data: { userId, token, type, expiresAt } });
-
-    return token;
-  }
-
-  private static async consumeToken(token: string, type: TokenType) {
-    const authToken = await prisma.authToken.findFirst({
-      where: { token, type, usedAt: null },
-    });
-
-    if (!authToken) {
-      throw new BadRequestError("Token is invalid or has already been used");
-    }
-    if (authToken.expiresAt < new Date()) {
-      throw new BadRequestError("Token has expired, please request a new one");
-    }
-
-    await prisma.authToken.update({
-      where: { id: authToken.id },
-      data: { usedAt: new Date() },
-    });
-
-    return authToken;
   }
 }
