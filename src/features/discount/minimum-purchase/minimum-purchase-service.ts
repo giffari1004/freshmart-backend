@@ -1,27 +1,19 @@
-import { prisma } from "../../configs/prisma-client-config";
-import { NotFoundError } from "../../errors/NotFoundError";
-import { AuthUser } from "../../middlewares/auth-middleware";
-import {
-  assertProductValid,
-  assertStoreOwnership,
-} from "../discount/discount-helper";
+import { prisma } from "../../../configs/prisma-client-config";
+import { NotFoundError } from "../../../errors/NotFoundError";
+import { AuthUser } from "../../../middlewares/auth-middleware";
+import { assertProductValid, assertStoreOwnership } from "../discount-helper";
 import {
   createMinimumDiscountSchema,
   updateMinimumDiscountSchema,
   deleteMinimumDiscountSchema,
-} from "./minimum-discount-validation";
+} from "./minimum-purchase-validation";
 
 export class MinimumPurchaseDiscountService {
-  static async create(
-    { body }: createMinimumDiscountSchema,
-    user: AuthUser,
-  ) {
+  static async create({ body }: createMinimumDiscountSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
-
     if (body.productId) {
       await assertProductValid(body.productId);
     }
-
     return prisma.discount.create({
       data: {
         storeId: body.storeId,
@@ -51,13 +43,10 @@ export class MinimumPurchaseDiscountService {
         deletedAt: null,
       },
     });
-
     if (!existing) {
       throw new NotFoundError("Discount not found");
     }
-
     assertStoreOwnership(user, existing.storeId);
-
     return prisma.discount.update({
       where: {
         id: params.id,
@@ -66,10 +55,7 @@ export class MinimumPurchaseDiscountService {
     });
   }
 
-  static async delete(
-    { params }: deleteMinimumDiscountSchema,
-    user: AuthUser,
-  ) {
+  static async delete({ params }: deleteMinimumDiscountSchema, user: AuthUser) {
     const existing = await prisma.discount.findFirst({
       where: {
         id: params.id,
@@ -77,13 +63,10 @@ export class MinimumPurchaseDiscountService {
         deletedAt: null,
       },
     });
-
     if (!existing) {
       throw new NotFoundError("Discount not found");
     }
-
     assertStoreOwnership(user, existing.storeId);
-
     return prisma.discount.update({
       where: {
         id: params.id,

@@ -1,8 +1,8 @@
-import { prisma } from "../../configs/prisma-client-config";
-import { ConflictError } from "../../errors/ConflictError";
-import { NotFoundError } from "../../errors/NotFoundError";
-import { AuthUser } from "../../middlewares/auth-middleware";
-import { assertProductValid, assertStoreOwnership } from "./discount-helper";
+import { prisma } from "../../../configs/prisma-client-config";
+import { ConflictError } from "../../../errors/ConflictError";
+import { NotFoundError } from "../../../errors/NotFoundError";
+import { AuthUser } from "../../../middlewares/auth-middleware";
+import { assertProductValid, assertStoreOwnership } from "../discount-helper";
 import {
   createDiscountSchema,
   deleteDiscountSchema,
@@ -13,9 +13,7 @@ import {
 export class DiscountService {
   static async create({ body }: createDiscountSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
-
     await assertProductValid(body.productId);
-
     const existing = await prisma.discount.findFirst({
       where: {
         storeId: body.storeId,
@@ -24,13 +22,11 @@ export class DiscountService {
         deletedAt: null,
       },
     });
-
     if (existing) {
       throw new ConflictError(
         "Discount for this product and store already exists",
       );
     }
-
     return prisma.discount.create({
       data: {
         storeId: body.storeId,
@@ -44,7 +40,6 @@ export class DiscountService {
       },
     });
   }
-
   static async update({ params, body }: updateDiscountSchema, user: AuthUser) {
     const existing = await prisma.discount.findFirst({
       where: {
@@ -52,7 +47,6 @@ export class DiscountService {
         deletedAt: null,
       },
     });
-
     if (!existing) {
       throw new NotFoundError("Discount not found");
     }
@@ -71,12 +65,10 @@ export class DiscountService {
         deletedAt: null,
       },
     });
-
     if (!existing) {
       throw new NotFoundError("Discount not found");
     }
     assertStoreOwnership(user, existing.storeId);
-
     return prisma.discount.update({
       where: {
         id: params.id,
@@ -95,11 +87,9 @@ export class DiscountService {
         ...(query.storeId && {
           storeId: query.storeId,
         }),
-
         ...(query.productId && {
           productId: query.productId,
         }),
-
         ...(query.activeOnly && {
           isActive: true,
           startDate: {
@@ -113,7 +103,6 @@ export class DiscountService {
       orderBy: {
         createdAt: "desc",
       },
-
       include: {
         product: true,
         store: true,
