@@ -55,15 +55,12 @@ export class BogoValidation {
 export type CreateBogoSchema = z.infer<
   typeof BogoValidation.CREATE
 >;
-
 export type UpdateBogoSchema = z.infer<
   typeof BogoValidation.UPDATE
 >;
-
 export type DeleteBogoSchema = z.infer<
   typeof BogoValidation.DELETE
 >;
-
 export type CalculateBogoSchema = z.infer<
   typeof BogoValidation.CALCULATE
 >;
