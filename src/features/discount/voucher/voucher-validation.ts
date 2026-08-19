@@ -2,7 +2,6 @@ import z from "zod";
 import { ValueType, VoucherUsageType } from "../../../../generated/prisma";
 
 export default class VoucherValidation {
-  // CREATE
   static readonly CREATE_VOUCHER = z.object({
     body: z
       .object({
@@ -39,8 +38,6 @@ export default class VoucherValidation {
         },
       ),
   });
-
-  // UPDATE (partial — cross-field business rules divalidasi ulang di service pas merge data existing)
   static readonly UPDATE_VOUCHER = z.object({
     params: z.object({
       id: z.string().uuid("Invalid voucher id"),
@@ -58,8 +55,6 @@ export default class VoucherValidation {
       isActive: z.boolean().optional(),
     }),
   });
-
-  // GET ALL (pagination, filter, sort — wajib sesuai Standardization di PDF)
   static readonly GET_ALL_VOUCHER = z.object({
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
@@ -72,18 +67,13 @@ export default class VoucherValidation {
       sortOrder: z.enum(["asc", "desc"]).default("desc"),
     }),
   });
-
-  // GET BY ID / DELETE
   static readonly VOUCHER_ID_PARAM = z.object({
     params: z.object({
       id: z.string().uuid("Invalid voucher id"),
     }),
   });
-
-  // CLAIM (user ambil voucher agar tersimpan di akunnya)
-  static readonly CLAIM_VOUCHER = z.object({
-    params: z.object({
-      voucherId: z.string().uuid("Invalid voucher id"),
-    }),
-  });
 }
+export type getAllVourcherSchema = z.infer<typeof VoucherValidation.GET_ALL_VOUCHER>
+export type createVourcherSchema = z.infer<typeof VoucherValidation.CREATE_VOUCHER>
+export type updateVourcherSchema = z.infer<typeof VoucherValidation.UPDATE_VOUCHER>
+export type VourcherByIdSchema = z.infer<typeof VoucherValidation.VOUCHER_ID_PARAM>

@@ -27,6 +27,7 @@ import { addressRoute } from "./features/address/address.routes";
 import { profileRoute } from "./features/profile/profile.route";
 import { authorizationRoute } from "./features/authorization/authorization.route";
 import { socialLoginRoute } from "./features/social-login/social-login.route";
+import { voucherRoute } from "./features/discount/voucher/voucher-route";
 
 const app = express();
 app.use(helmet());
@@ -73,7 +74,7 @@ app.use("/api/v1/addresses", addressRoute);
 app.use("/api/v1/profile", profileRoute);
 app.use("/api/v1/authorization", authorizationRoute);
 app.use("/api/v1/social-login", socialLoginRoute);
-
+app.use("/api/v1/admin/vouchers", voucherRoute);
 // ===============================
 // 404 Handler
 // ===============================

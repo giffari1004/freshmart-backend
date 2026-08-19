@@ -18,8 +18,23 @@ export async function assertProductValid(productId: string) {
       id: productId,
     },
   });
-
   if (!product || product.deletedAt) {
     throw new NotFoundError("Product is not found");
   }
+}
+
+export function getPagination(page: number, limit: number) {
+  return {
+    skip: (page - 1) * limit,
+    take: limit,
+  };
+}
+
+export function createMeta(page: number, limit: number, totalData: number) {
+  return {
+    page,
+    limit,
+    totalData,
+    totalPages: Math.ceil(totalData / limit),
+  };
 }
