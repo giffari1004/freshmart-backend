@@ -1,22 +1,17 @@
 import { prisma } from "../../../configs/prisma-client-config";
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { AuthUser } from "../../../middlewares/auth-middleware";
-import {
-  assertProductValid,
-  assertStoreOwnership,
-} from "../discount-helper";
+import { assertProductValid, assertStoreOwnership } from "../discount-helper";
 import {
   CalculateBogoSchema,
   CreateBogoSchema,
   DeleteBogoSchema,
+  GetAllBogoSchema,
   UpdateBogoSchema,
 } from "./bogo-validation";
 
 export class BogoService {
-  static async create(
-    { body }: CreateBogoSchema,
-    user: AuthUser,
-  ) {
+  static async create({ body }: CreateBogoSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
     await assertProductValid(body.productId);
     const createBogo = await prisma.discount.create({
@@ -33,10 +28,7 @@ export class BogoService {
     });
     return createBogo;
   }
-  static async update(
-    { params, body }: UpdateBogoSchema,
-    user: AuthUser,
-  ) {
+  static async update({ params, body }: UpdateBogoSchema, user: AuthUser) {
     const existingBogo = await prisma.discount.findFirst({
       where: {
         id: params.id,
@@ -69,10 +61,7 @@ export class BogoService {
     });
     return updateBogo;
   }
-  static async delete(
-    { params }: DeleteBogoSchema,
-    user: AuthUser,
-  ) {
+  static async delete({ params }: DeleteBogoSchema, user: AuthUser) {
     const existingBogo = await prisma.discount.findFirst({
       where: {
         id: params.id,
@@ -95,9 +84,7 @@ export class BogoService {
     return deleteBogo;
   }
 
-  static async calculate({
-    body,
-  }: CalculateBogoSchema) {
+  static async calculate({ body }: CalculateBogoSchema) {
     const now = new Date();
     const bogo = await prisma.discount.findFirst({
       where: {
@@ -127,5 +114,19 @@ export class BogoService {
       discountId: bogo.id,
       productId: body.productId,
     };
+  }
+  static async getAll({ query }: GetAllBogoSchema) {
+    const bogos = await prisma.discount.findMany({
+      where: {
+        type: "BUY1GET1",
+        deletedAt: null,
+        ...(query.storeId && { storeId: query.storeId }),
+        ...(query.productId && { productId: query.productId }),
+        ...(query.activeOnly && { isActive: true }),
+      },
+      include: { product: true, store: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return bogos;
   }
 }

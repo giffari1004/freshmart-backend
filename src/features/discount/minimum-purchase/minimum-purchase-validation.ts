@@ -66,8 +66,15 @@ export class MinimumDiscountValidation {
       id: z.string().uuid("Invalid discount id"),
     }),
   });
+  static readonly GET_MINIMUM_PURCHASE = z.object({
+    query: z.object({
+      storeId: z.string().uuid("Invalid store id").optional(),
+      productId: z.string().uuid("Invalid product id").optional(),
+      activeOnly: z.coerce.boolean().default(true),
+    }),
+  });
 }
-
+export type getMinimumPurchaseSchema = z.infer<typeof MinimumDiscountValidation.GET_MINIMUM_PURCHASE>
 export type createMinimumDiscountSchema = z.infer<
   typeof MinimumDiscountValidation.CREATE
 >;
