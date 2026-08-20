@@ -50,8 +50,15 @@ export class BogoValidation {
       quantity: z.number().int().positive(),
     }),
   });
+  static readonly GET_ALL = z.object({
+    query: z.object({
+      storeId: z.string().uuid().optional(),
+      productId: z.string().uuid().optional(),
+      activeOnly: z.coerce.boolean().default(true),
+    }),
+  });
 }
-
+export type GetAllBogoSchema = z.infer<typeof BogoValidation.GET_ALL>
 export type CreateBogoSchema = z.infer<
   typeof BogoValidation.CREATE
 >;

@@ -10,3 +10,4 @@ bogoRoute.use(authMiddleware, requireRole("SUPER_ADMIN", "STORE_ADMIN"));
 bogoRoute.post("/", BogoController.create);
 bogoRoute.patch("/:id", BogoController.update);
 bogoRoute.delete("/:id", BogoController.delete);
+bogoRoute.get("/", BogoController.getAll);
