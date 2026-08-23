@@ -2,7 +2,6 @@ import { BadRequestError } from "../../errors/BadRequestError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { snap } from "../../configs/midtrans-client-configs";
 import { PaymentRepository } from "./payment.repository";
-import { Prisma } from "../../../generated/prisma";
 import { CreatePaymentRequest, CreatePaymentResponse } from "./payment.type";
 
 type PaymentRecord = NonNullable<

@@ -4,7 +4,7 @@ import { PaymentService } from "./payment.service";
 export class PaymentController {
   constructor(private readonly paymentService = new PaymentService()) {}
 
-  createPayment = async (req: Request, res: Response, next: NextFunction) => {
+createPayment = async (req: Request, res: Response, next: NextFunction) => {
     try {
       return res
         .status(200)
@@ -18,3 +18,5 @@ export class PaymentController {
     }
   };
 }
+
+ 

@@ -7,10 +7,28 @@ const ORDER_SELECT = {
   status: true,
   totalAmount: true,
   createdAt: true,
-  store: { select: { id: true, name: true, code: true } },
+  store: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+  },
 } as const;
 
 type AdminStatus = Prisma.OrderWhereInput["status"];
+type OrderStatus = NonNullable<
+  Prisma.OrderCreateInput["status"]
+>;
+
+const PROCESSED_STATUS =
+  "PROCESSED" as OrderStatus;
+
+const SHIPPED_STATUS =
+  "SHIPPED" as OrderStatus;
+
+const PAID_STATUS =
+  "PAID" as OrderStatus;
 
 export class OrderAdminRepository {
   async findOrders(
@@ -29,7 +47,9 @@ export class OrderAdminRepository {
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: {
+          createdAt: "desc",
+        },
         select: ORDER_SELECT,
       }),
       prisma.order.count({ where }),
@@ -38,29 +58,49 @@ export class OrderAdminRepository {
     return { orders, total };
   }
 
-  async findOrder(orderId: string, storeId: string | null) {
+  async findOrder(
+    orderId: string,
+    storeId: string | null,
+  ) {
     return prisma.order.findFirst({
-      where: { id: orderId, ...(storeId ? { storeId } : {}) },
-      select: { id: true, status: true },
+      where: {
+        id: orderId,
+        ...(storeId ? { storeId } : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+      },
     });
   }
 
   async updateStatus(
     orderId: string,
     storeId: string | null,
-    status: "PROCESSING" | "SHIPPED" | "CANCELLED",
+    status: OrderStatus,
   ) {
-    const where = {
+    const where: Prisma.OrderWhereInput = {
       id: orderId,
       ...(storeId ? { storeId } : {}),
-      ...(status === "SHIPPED"
-        ? { status: "PROCESSING" as const }
-        : { status: { in: ["PAID", "PROCESSING"] as const } }),
+      ...(status === SHIPPED_STATUS
+        ? {
+            status: PROCESSED_STATUS,
+          }
+        : {
+            status: {
+              in: [
+                PAID_STATUS,
+                PROCESSED_STATUS,
+              ],
+            },
+          }),
     };
 
     return prisma.order.updateMany({
       where,
-      data: { status },
+      data: {
+        status,
+      },
     });
   }
 }

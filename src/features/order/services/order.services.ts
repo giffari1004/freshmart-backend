@@ -11,7 +11,10 @@ import {
   OrderItemCalculation,
 } from "../helper/order.helper";
 import { OrderRepository } from "../repository/order.repository";
-import { CreateOrderRequest } from "../order.type";
+import type {
+  CreateOrderRequest,
+  OrderListQuery,
+} from "../order.type";
 
 type OrderCart = NonNullable<Awaited<ReturnType<OrderRepository["getCartForOrder"]>>>;
 type OrderStore = OrderCart["items"][number]["storeProduct"]["store"];
@@ -22,9 +25,26 @@ type OrderPricing = ReturnType<typeof calculateOrderPrice>;
 export class OrderService {
   constructor(private readonly orderRepository = new OrderRepository()) {}
 
-  async getOrders(userId: string) {
-    const orders = await this.orderRepository.getOrdersByUser(userId);
-    return orders.map(OrderMapper.toOrderListItem);
+  async getOrders(
+    userId: string,
+    query: OrderListQuery,
+  ) {
+    const result = await this.orderRepository.getOrdersByUser(
+      userId,
+      query,
+    );
+
+    return {
+      items: result.orders.map(OrderMapper.toOrderListItem),
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        totalItems: result.totalItems,
+        totalPages: Math.ceil(
+          result.totalItems / result.limit,
+        ),
+      },
+    };
   }
 
   async getOrderDetail(orderId: string, userId: string) {

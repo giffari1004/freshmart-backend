@@ -11,7 +11,11 @@ import {
   validateStock,
   validateStoreDistance,
 } from "../helper/checkout.helper";
-import { CheckoutAddress, CheckoutShipping, CheckoutStore } from "../checkout.types";
+import {
+  CheckoutAddress,
+  CheckoutShipping,
+  CheckoutStore,
+} from "../checkout.types";
 
 type CartRecord = NonNullable<
   Awaited<ReturnType<CheckoutRepository["getCheckoutPreview"]>>

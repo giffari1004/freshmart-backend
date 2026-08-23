@@ -1,9 +1,11 @@
+import { Prisma } from "../../../../generated/prisma";
 import { prisma } from "../../../configs/prisma-client-config";
 import {
   runCreateOrderTransaction,
   CreateOrderTransactionData,
 } from "../order.transaction";
 import { cancelOrderTransaction } from "../order.cancellation";
+import type { OrderListQuery } from "../order.type";
 
 const ORDER_LIST_SELECT = {
   id: true,
@@ -16,38 +18,86 @@ const ORDER_LIST_SELECT = {
   createdAt: true,
 } as const;
 
-const cartInclude = { items: { include: { storeProduct: { include: { product: true, store: true } } } } } as const;
+const cartInclude = {
+  items: {
+    include: { storeProduct: { include: { product: true, store: true } } },
+  },
+} as const;
 
 export class OrderRepository {
   async getCartForOrder(userId: string) {
-    return prisma.cart.findFirst({ where: { userId, deletedAt: null }, include: cartInclude });
+    return prisma.cart.findFirst({
+      where: { userId, deletedAt: null },
+      include: cartInclude,
+    });
   }
 
   async getUserAddress(userId: string, addressId: string) {
-    return prisma.userAddress.findFirst({ where: { id: addressId, userId, deletedAt: null } });
+    return prisma.userAddress.findFirst({
+      where: { id: addressId, userId, deletedAt: null },
+    });
   }
 
-  async getShippingMethod(shippingMethodId: string, storeId: string, destinationCity: string) {
-    return prisma.shippingMethod.findFirst({ where: { id: shippingMethodId, storeId, destinationCity, store: { isActive: true, deletedAt: null } } });
+  async getShippingMethod(
+    shippingMethodId: string,
+    storeId: string,
+    destinationCity: string,
+  ) {
+    return prisma.shippingMethod.findFirst({
+      where: {
+        id: shippingMethodId,
+        storeId,
+        destinationCity,
+        store: { isActive: true, deletedAt: null },
+      },
+    });
   }
 
   async getUserVoucher(userId: string, userVoucherId: string) {
-    return prisma.userVoucher.findFirst({ where: { id: userVoucherId, userId }, include: { voucher: true } });
+    return prisma.userVoucher.findFirst({
+      where: { id: userVoucherId, userId },
+      include: { voucher: true },
+    });
   }
 
   async createOrderTransaction(data: CreateOrderTransactionData) {
     return prisma.$transaction((tx) => runCreateOrderTransaction(tx, data));
   }
 
-  async getOrdersByUser(userId: string) {
-    return prisma.order.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: ORDER_LIST_SELECT,
-    });
+  async getOrdersByUser(
+    userId: string,
+    query: OrderListQuery,
+  ) {
+    const { page, limit, status, sortBy, sortOrder } = query;
+
+    const where: Prisma.OrderWhereInput = {
+      userId,
+      ...(status ? { status } : {}),
+    };
+
+    const skip = (page - 1) * limit;
+
+    const [orders, totalItems] = await prisma.$transaction([
+      prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [
+          { [sortBy]: sortOrder },
+          { id: "asc" },
+        ],
+        select: ORDER_LIST_SELECT,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return {
+      orders,
+      totalItems,
+      page,
+      limit,
+    };
   }
-
-
 
   async getOrderForCancellation(orderId: string, userId: string) {
     return prisma.order.findFirst({
@@ -86,7 +136,9 @@ export class OrderRepository {
     if (!order) return null;
     const [store, shipping] = await Promise.all([
       prisma.store.findUnique({ where: { id: order.storeId } }),
-      prisma.shippingMethod.findUnique({ where: { id: order.shippingMethodId } }),
+      prisma.shippingMethod.findUnique({
+        where: { id: order.shippingMethodId },
+      }),
     ]);
     return { order, store, shipping };
   }

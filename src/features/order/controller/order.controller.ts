@@ -1,12 +1,23 @@
 import { NextFunction, Request, Response } from "express";
+import { UnAuthorizedError } from "../../../errors/UnauthorizedError";
 import { OrderService } from "../services/order.services";
+import { orderListQuerySchema } from "../validation/order.validation";
 
 export class OrderController {
-  constructor(private readonly orderService = new OrderService()) {}
+  constructor(
+    private readonly orderService = new OrderService(),
+  ) {}
 
-  getOrders = async (req: Request, res: Response, next: NextFunction) => {
+  getOrders = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const data = await this.orderService.getOrders(req.user!.id);
+      const userId = this.getUserId(req);
+      const query = orderListQuerySchema.parse(req.query);
+      const data = await this.orderService.getOrders(userId, query);
+
       return res.status(200).json({
         success: true,
         message: "Orders retrieved successfully",
@@ -17,20 +28,17 @@ export class OrderController {
     }
   };
 
-  getOrderDetail = async (req: Request, res: Response, next: NextFunction) => {
+  getOrderDetail = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const orderId = req.params.id;
-
-      if (typeof orderId !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid order ID",
-        });
-      }
-
+      const orderId = this.getOrderId(req);
+      const userId = this.getUserId(req);
       const data = await this.orderService.getOrderDetail(
         orderId,
-        req.user!.id,
+        userId,
       );
 
       return res.status(200).json({
@@ -43,10 +51,19 @@ export class OrderController {
     }
   };
 
-  cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
+  cancelOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const orderId = this.getOrderId(req);
-      const data = await this.orderService.cancelOrder(orderId, req.user!.id);
+      const userId = this.getUserId(req);
+      const data = await this.orderService.cancelOrder(
+        orderId,
+        userId,
+      );
+
       return res.status(200).json({
         success: true,
         message: "Order cancelled successfully",
@@ -57,10 +74,19 @@ export class OrderController {
     }
   };
 
-  confirmOrder = async (req: Request, res: Response, next: NextFunction) => {
+  confirmOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const orderId = this.getOrderId(req);
-      const data = await this.orderService.confirmOrder(orderId, req.user!.id);
+      const userId = this.getUserId(req);
+      const data = await this.orderService.confirmOrder(
+        orderId,
+        userId,
+      );
+
       return res.status(200).json({
         success: true,
         message: "Order confirmed successfully",
@@ -71,21 +97,45 @@ export class OrderController {
     }
   };
 
-  private getOrderId(req: Request) {
-    const orderId = req.params.id;
-    if (typeof orderId !== "string") throw new Error("Invalid order ID");
-    return orderId;
-  }
-
-  createOrder = async (req: Request, res: Response, next: NextFunction) => {
+  createOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
+      const userId = this.getUserId(req);
+      const data = await this.orderService.createOrder(
+        userId,
+        req.body,
+      );
+
       return res.status(201).json({
         success: true,
         message: "Order created successfully",
-        data: await this.orderService.createOrder(req.user!.id, req.body),
+        data,
       });
     } catch (error) {
       next(error);
     }
   };
+
+  private getUserId(req: Request): string {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new UnAuthorizedError("Unauthorized");
+    }
+
+    return userId;
+  }
+
+  private getOrderId(req: Request): string {
+    const orderId = req.params.id;
+
+    if (typeof orderId !== "string") {
+      throw new Error("Invalid order ID");
+    }
+
+    return orderId;
+  }
 }

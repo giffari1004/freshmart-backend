@@ -3,14 +3,26 @@ import { PaymentWebhookService } from "./payment.webhook.service";
 
 export class PaymentWebhookController {
   constructor(
-    private readonly paymentWebhookService = new PaymentWebhookService(),
+    private readonly paymentWebhookService: PaymentWebhookService =
+      new PaymentWebhookService(),
   ) {}
 
-  handleWebhook = async (req: Request, res: Response, next: NextFunction) => {
+  handleWebhook = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      return res
-        .status(200)
-        .json(await this.paymentWebhookService.handleWebhook(req.body));
+      const data =
+        await this.paymentWebhookService.handleWebhook(
+          req.body,
+        );
+
+      return res.status(200).json({
+        success: true,
+        message: "Midtrans webhook processed successfully",
+        data,
+      });
     } catch (error) {
       next(error);
     }

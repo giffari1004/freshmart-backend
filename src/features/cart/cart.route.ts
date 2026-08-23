@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { CartController } from "./cart.controller";
-import { authMiddleware } from "../../middlewares/auth-middleware";
+import {authMiddleware } from "../../middlewares/auth-middleware";
+import { requireVerified } from "../../middlewares/verified-middleware";
 
 const router = Router();
 
@@ -10,7 +11,11 @@ router.use(authMiddleware);
 
 router.get("/", cartController.getCart);
 
-router.post("/items", cartController.addToCart);
+router.post(
+  "/items",
+  requireVerified,
+  cartController.addToCart,
+);
 
 router.patch("/items/:id", cartController.updateQuantity);
 
