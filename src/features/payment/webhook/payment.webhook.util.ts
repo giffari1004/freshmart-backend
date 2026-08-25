@@ -19,8 +19,15 @@ export function verifyMidtransSignature(
   signatureKey: string,
   serverKey: string,
 ) {
-  return (
-    generateMidtransSignature(orderId, statusCode, grossAmount, serverKey) ===
-    signatureKey
+  const expected = generateMidtransSignature(
+    orderId,
+    statusCode,
+    grossAmount,
+    serverKey,
+  );
+  if (expected.length !== signatureKey.length) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(expected, "utf8"),
+    Buffer.from(signatureKey, "utf8"),
   );
 }

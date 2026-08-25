@@ -6,6 +6,7 @@ import {
   createMinimumDiscountSchema,
   updateMinimumDiscountSchema,
   deleteMinimumDiscountSchema,
+  getMinimumPurchaseSchema,
 } from "./minimum-purchase-validation";
 
 export class MinimumPurchaseDiscountService {
@@ -74,6 +75,20 @@ export class MinimumPurchaseDiscountService {
       data: {
         deletedAt: new Date(),
       },
+    });
+  }
+
+  static async getAll({ query }: getMinimumPurchaseSchema) {
+    return prisma.discount.findMany({
+      where: {
+        type: "MIN_PURCHASE",
+        deletedAt: null,
+        ...(query.storeId && { storeId: query.storeId }),
+        ...(query.productId && { productId: query.productId }),
+        ...(query.activeOnly && { isActive: true }),
+      },
+      include: { product: true, store: true },
+      orderBy: { createdAt: "desc" },
     });
   }
 }

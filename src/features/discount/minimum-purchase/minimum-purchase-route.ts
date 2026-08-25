@@ -21,3 +21,4 @@ minimumPurchaseDiscountRoute.delete(
   "/:id",
   MinimumPurchaseDiscountController.delete,
 );
+minimumPurchaseDiscountRoute.get("/", requireRole("SUPER_ADMIN", "STORE_ADMIN"), MinimumPurchaseDiscountController.getAll);

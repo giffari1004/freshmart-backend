@@ -9,7 +9,7 @@ export const paymentWebhookSchema = z.object({
 
   status_code: z.string().min(1),
 
-  gross_amount: z.string().min(1),
+  gross_amount: z.string().regex(/^\d+(\.\d+)?$/, "gross_amount must be numeric"),
 
   signature_key: z.string().min(1),
 

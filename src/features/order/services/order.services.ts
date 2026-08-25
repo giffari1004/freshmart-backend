@@ -55,13 +55,15 @@ export class OrderService {
 
   async cancelOrder(orderId: string, userId: string) {
     const detail = await this.orderRepository.getOrderForCancellation(orderId, userId);
-    validateCancellationStatus(detail?.status);
+    if (!detail) throw new NotFoundError("Order not found");
+    validateCancellationStatus(detail.status);
     return this.orderRepository.cancelOrder(orderId, userId);
   }
 
   async confirmOrder(orderId: string, userId: string) {
     const order = await this.orderRepository.getOrderForConfirmation(orderId, userId);
-    validateConfirmationStatus(order?.status);
+    if (!order) throw new NotFoundError("Order not found");
+    validateConfirmationStatus(order.status);
     return this.orderRepository.confirmOrder(orderId, userId);
   }
 

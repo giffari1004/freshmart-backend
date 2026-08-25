@@ -1,32 +1,38 @@
 import { NextFunction, Request, Response } from "express";
 import { UnAuthorizedError } from "../../../errors/UnauthorizedError";
 import { OrderService } from "../services/order.services";
-import { orderListQuerySchema } from "../validation/order.validation";
+import type { OrderListQuery } from "../order.type";
 
 export class OrderController {
   constructor(
     private readonly orderService = new OrderService(),
   ) {}
 
-  getOrders = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    try {
-      const userId = this.getUserId(req);
-      const query = orderListQuerySchema.parse(req.query);
-      const data = await this.orderService.getOrders(userId, query);
+ getOrders = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = this.getUserId(req);
 
-      return res.status(200).json({
-        success: true,
-        message: "Orders retrieved successfully",
-        data,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
+    const query =
+      res.locals.validatedQuery as OrderListQuery;
+
+    const result = await this.orderService.getOrders(
+      userId,
+      query,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
 
   getOrderDetail = async (
     req: Request,
@@ -34,12 +40,14 @@ export class OrderController {
     next: NextFunction,
   ) => {
     try {
-      const orderId = this.getOrderId(req);
+      const orderId = this.getOrderId(res);
       const userId = this.getUserId(req);
-      const data = await this.orderService.getOrderDetail(
-        orderId,
-        userId,
-      );
+
+      const data =
+        await this.orderService.getOrderDetail(
+          orderId,
+          userId,
+        );
 
       return res.status(200).json({
         success: true,
@@ -47,7 +55,7 @@ export class OrderController {
         data,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -57,12 +65,14 @@ export class OrderController {
     next: NextFunction,
   ) => {
     try {
-      const orderId = this.getOrderId(req);
+      const orderId = this.getOrderId(res);
       const userId = this.getUserId(req);
-      const data = await this.orderService.cancelOrder(
-        orderId,
-        userId,
-      );
+
+      const data =
+        await this.orderService.cancelOrder(
+          orderId,
+          userId,
+        );
 
       return res.status(200).json({
         success: true,
@@ -70,7 +80,7 @@ export class OrderController {
         data,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -80,12 +90,14 @@ export class OrderController {
     next: NextFunction,
   ) => {
     try {
-      const orderId = this.getOrderId(req);
+      const orderId = this.getOrderId(res);
       const userId = this.getUserId(req);
-      const data = await this.orderService.confirmOrder(
-        orderId,
-        userId,
-      );
+
+      const data =
+        await this.orderService.confirmOrder(
+          orderId,
+          userId,
+        );
 
       return res.status(200).json({
         success: true,
@@ -93,7 +105,7 @@ export class OrderController {
         data,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -104,10 +116,12 @@ export class OrderController {
   ) => {
     try {
       const userId = this.getUserId(req);
-      const data = await this.orderService.createOrder(
-        userId,
-        req.body,
-      );
+
+      const data =
+        await this.orderService.createOrder(
+          userId,
+          req.body,
+        );
 
       return res.status(201).json({
         success: true,
@@ -115,7 +129,7 @@ export class OrderController {
         data,
       });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   };
 
@@ -129,13 +143,16 @@ export class OrderController {
     return userId;
   }
 
-  private getOrderId(req: Request): string {
-    const orderId = req.params.id;
+  private getOrderId(res: Response): string {
+    const orderId =
+      res.locals.validatedParams?.id;
 
-    if (typeof orderId !== "string") {
-      throw new Error("Invalid order ID");
+    if (!orderId) {
+      throw new UnAuthorizedError(
+        "Order ID is required",
+      );
     }
 
-    return orderId;
+    return orderId as string;
   }
 }

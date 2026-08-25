@@ -14,7 +14,15 @@ export class CartService {
 
     const storeProduct = await this.getStoreProduct(payload.storeProductId);
 
-    this.validateStock(storeProduct, payload.quantity);
+    const existingItem = await this.cartRepository.findCartItem(
+      cart.id,
+      storeProduct.id,
+    );
+    const nextQuantity = existingItem
+      ? existingItem.quantity + payload.quantity
+      : payload.quantity;
+
+    this.validateStock(storeProduct, nextQuantity);
 
     await this.saveCartItem(cart.id, storeProduct.id, payload.quantity);
     return this.getCart(userId);

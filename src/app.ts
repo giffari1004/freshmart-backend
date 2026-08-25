@@ -14,6 +14,7 @@ import { productRoute } from "./features/product/product-route";
 import { customerProductRoute } from "./features/product/product-public-route";
 import checkoutRouter from "./features/checkout/route/checkout.route";
 import orderRouter from "./features/order/route/order.route";
+import orderAdminRouter from "./features/order/admin/order-admin.route";
 import paymentRouter from "./features/payment/payment.route";
 import { storefrontRoute } from "./features/storefront/storefront.route";
 import { storeRoute } from "./features/store/store.route";
@@ -27,7 +28,8 @@ import { addressRoute } from "./features/address/address.routes";
 import { profileRoute } from "./features/profile/profile.route";
 import { authorizationRoute } from "./features/authorization/authorization.route";
 import { socialLoginRoute } from "./features/social-login/social-login.route";
-import orderAdminRoute from "./features/order/admin/order-admin.route"
+import { discountCalculateRoute } from "./features/discount/calculate/discount-calculate-route";
+import { discountUsageRoute } from "./features/discount/usage/discount-usage-route";
 
 
 const app = express();
@@ -37,7 +39,7 @@ app.use(
     origin: WHITE_LIST,
     credentials: true,
   }),
-)
+);
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
@@ -56,7 +58,7 @@ app.get("/", (_req, res) => {
   });
 });
 app.use("/api/v1/admin", adminRouter);
-app.use("/api/v1/admin/orders", orderAdminRoute);
+app.use("/api/v1/admin/orders", orderAdminRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/admin/products", productRoute);
 app.use("/api/v1/products", customerProductRoute);
@@ -69,14 +71,18 @@ app.use("/api/v1/stores", storeRoute);
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/admin/discounts", discountRoute);
 app.use("/api/v1/discounts", discountPublicRoute);
-app.use("/api/v1/admin/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
-app.use('/api/v1/admin/bogo', bogoRoute);
-app.use('/api/v1/bogo', bogoPublicRoute);
+app.use(
+  "/api/v1/admin/discounts/minimum-purchase",
+  minimumPurchaseDiscountRoute,
+);
+app.use("/api/v1/admin/bogo", bogoRoute);
+app.use("/api/v1/bogo", bogoPublicRoute);
 app.use("/api/v1/addresses", addressRoute);
 app.use("/api/v1/profile", profileRoute);
 app.use("/api/v1/authorization", authorizationRoute);
 app.use("/api/v1/social-login", socialLoginRoute);
-
+app.use("/api/discounts/calculate", discountCalculateRoute);
+app.use("/api/v1/discounts/usage", discountUsageRoute);
 // ===============================
 // 404 Handler
 // ===============================

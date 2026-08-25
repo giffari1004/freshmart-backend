@@ -1,41 +1,54 @@
-import { Request, Response, NextFunction } from "express";
-import { validate } from "../../../validate/validate";
-import { orderAdminListSchema, orderAdminUpdateSchema } from "./order-admin.type";
+import { NextFunction, Request, Response } from "express";
+import { UnAuthorizedError } from "../../../errors/UnauthorizedError";
 import { OrderAdminService } from "./order-admin.service";
+import { OrderAdminListInput, OrderAdminUpdateInput } from "./order-admin.type";
 
 export class OrderAdminController {
-  constructor(private readonly service = new OrderAdminService()) {}
+  constructor(private readonly orderAdminService = new OrderAdminService()) {}
 
-  list = async (req: Request, res: Response, next: NextFunction) => {
+  getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { query } = validate(orderAdminListSchema, { query: req.query });
-      const storeId = this.getStoreScope(req);
-      const result = await this.service.list(storeId, query.page, query.limit, query.status);
+      const user = this.getUser(req);
+      const query = req.query as unknown as OrderAdminListInput["query"];
+
+      const data = await this.orderAdminService.getOrders(
+        query,
+        user.storeId,
+      );
+
       return res.status(200).json({
         success: true,
         message: "Admin orders retrieved successfully",
-        data: result.orders,
-        meta: { page: query.page, limit: query.limit, totalData: result.total, totalPages: Math.ceil(result.total / query.limit) },
+        data: {
+          items: data.orders,
+          pagination: {
+            page: data.page,
+            limit: data.limit,
+            totalItems: data.totalItems,
+            totalPages: Math.ceil(data.totalItems / data.limit),
+          },
+        },
       });
     } catch (error) {
       next(error);
     }
   };
 
-  private getStoreScope(req: Request) {
-    if (req.user!.role === "SUPER_ADMIN") return null;
-    if (!req.user!.storeId) throw new Error("Store admin is not assigned to a store");
-    return req.user!.storeId;
-  }
-
-  update = async (req: Request, res: Response, next: NextFunction) => {
+  updateStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { params, body } = validate(orderAdminUpdateSchema, {
+      const user = this.getUser(req);
+      const input = {
         params: req.params,
         body: req.body,
-      });
-      const storeId = this.getStoreScope(req);
-      const data = await this.service.update(params.id, storeId, body);
+      } as OrderAdminUpdateInput;
+
+      const data = await this.orderAdminService.updateStatus(
+        input.params.id,
+        input.body.status,
+        user.id,
+        user.storeId,
+      );
+
       return res.status(200).json({
         success: true,
         message: "Order status updated successfully",
@@ -45,4 +58,11 @@ export class OrderAdminController {
       next(error);
     }
   };
+
+  private getUser(req: Request) {
+    if (!req.user) {
+      throw new UnAuthorizedError("Unauthorized");
+    }
+    return req.user;
+  }
 }

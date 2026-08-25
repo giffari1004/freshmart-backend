@@ -20,21 +20,34 @@ const ORDER_LIST_SELECT = {
 
 const cartInclude = {
   items: {
-    include: { storeProduct: { include: { product: true, store: true } } },
+    include: {
+      storeProduct: {
+        include: {
+          product: true,
+          store: true,
+        },
+      },
+    },
   },
 } as const;
 
 export class OrderRepository {
   async getCartForOrder(userId: string) {
     return prisma.cart.findFirst({
-      where: { userId, deletedAt: null },
+      where: {
+        userId,
+      },
       include: cartInclude,
     });
   }
 
   async getUserAddress(userId: string, addressId: string) {
     return prisma.userAddress.findFirst({
-      where: { id: addressId, userId, deletedAt: null },
+      where: {
+        id: addressId,
+        userId,
+        deletedAt: null,
+      },
     });
   }
 
@@ -48,27 +61,45 @@ export class OrderRepository {
         id: shippingMethodId,
         storeId,
         destinationCity,
-        store: { isActive: true, deletedAt: null },
+        store: {
+          isActive: true,
+          deletedAt: null,
+        },
       },
     });
   }
 
   async getUserVoucher(userId: string, userVoucherId: string) {
     return prisma.userVoucher.findFirst({
-      where: { id: userVoucherId, userId },
-      include: { voucher: true },
+      where: {
+        id: userVoucherId,
+        userId,
+      },
+      include: {
+        voucher: true,
+      },
     });
   }
 
-  async createOrderTransaction(data: CreateOrderTransactionData) {
-    return prisma.$transaction((tx) => runCreateOrderTransaction(tx, data));
+  async createOrderTransaction(
+    data: CreateOrderTransactionData,
+  ) {
+    return prisma.$transaction((tx) =>
+      runCreateOrderTransaction(tx, data),
+    );
   }
 
   async getOrdersByUser(
     userId: string,
     query: OrderListQuery,
   ) {
-    const { page, limit, status, sortBy, sortOrder } = query;
+    const {
+      page,
+      limit,
+      status,
+      sortBy,
+      sortOrder,
+    } = query;
 
     const where: Prisma.OrderWhereInput = {
       userId,
@@ -83,12 +114,19 @@ export class OrderRepository {
         skip,
         take: limit,
         orderBy: [
-          { [sortBy]: sortOrder },
-          { id: "asc" },
+          {
+            [sortBy]: sortOrder,
+          },
+          {
+            id: "asc",
+          },
         ],
         select: ORDER_LIST_SELECT,
       }),
-      prisma.order.count({ where }),
+
+      prisma.order.count({
+        where,
+      }),
     ]);
 
     return {
@@ -99,47 +137,132 @@ export class OrderRepository {
     };
   }
 
-  async getOrderForCancellation(orderId: string, userId: string) {
+  async getOrderForCancellation(
+    orderId: string,
+    userId: string,
+  ) {
     return prisma.order.findFirst({
-      where: { id: orderId, userId },
-      select: { id: true, status: true },
+      where: {
+        id: orderId,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
     });
   }
 
-  async cancelOrder(orderId: string, userId: string) {
+  async cancelOrder(
+    orderId: string,
+    userId: string,
+  ) {
     return prisma.$transaction((tx) =>
-      cancelOrderTransaction(tx, orderId, userId),
+      cancelOrderTransaction(
+        tx,
+        orderId,
+        userId,
+      ),
     );
   }
 
-  async getOrderForConfirmation(orderId: string, userId: string) {
+  async getOrderForConfirmation(
+    orderId: string,
+    userId: string,
+  ) {
     return prisma.order.findFirst({
-      where: { id: orderId, userId },
-      select: { id: true, status: true },
+      where: {
+        id: orderId,
+        userId,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
     });
   }
 
-  async confirmOrder(orderId: string, userId: string) {
-    const result = await prisma.order.updateMany({
-      where: { id: orderId, userId, status: "SHIPPED" },
-      data: { status: "CONFIRMED" },
+  async confirmOrder(
+    orderId: string,
+    userId: string,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: {
+          id: orderId,
+          userId,
+          status: "SHIPPED",
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!order) {
+        return null;
+      }
+
+      const updated = await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          status: "CONFIRMED",
+          confirmedAt: new Date(),
+        },
+      });
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: "CONFIRMED",
+          changedById: userId,
+          notes: "Order confirmed by customer",
+        },
+      });
+
+      return updated;
     });
-    if (!result.count) return null;
-    return prisma.order.findUnique({ where: { id: orderId } });
   }
 
-  async getOrderDetail(orderId: string, userId: string) {
+  async getOrderDetail(
+    orderId: string,
+    userId: string,
+  ) {
     const order = await prisma.order.findFirst({
-      where: { id: orderId, userId },
-      include: { items: true, payments: true },
+      where: {
+        id: orderId,
+        userId,
+      },
+      include: {
+        items: true,
+        payments: true,
+      },
     });
-    if (!order) return null;
-    const [store, shipping] = await Promise.all([
-      prisma.store.findUnique({ where: { id: order.storeId } }),
-      prisma.shippingMethod.findUnique({
-        where: { id: order.shippingMethodId },
-      }),
-    ]);
-    return { order, store, shipping };
+
+    if (!order) {
+      return null;
+    }
+
+    const [store, shipping] =
+      await Promise.all([
+        prisma.store.findUnique({
+          where: {
+            id: order.storeId,
+          },
+        }),
+
+        prisma.shippingMethod.findUnique({
+          where: {
+            id: order.shippingMethodId,
+          },
+        }),
+      ]);
+
+    return {
+      order,
+      store,
+      shipping,
+    };
   }
 }

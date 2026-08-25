@@ -39,6 +39,15 @@ export class BogoController {
       data: bogo,
     });
   }
+  static async getAll(req: Request, res: Response) {
+    const { query } = validate(BogoValidation.GET_ALL, { query: req.query });
+    const bogos = await BogoService.getAll({ query });
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "BOGO retrieved successfully",
+      data: bogos,
+    });
+  }
   static async calculate(req: Request, res: Response) {
     const { body } = validate(BogoValidation.CALCULATE, {
       body: req.body,

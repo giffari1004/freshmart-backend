@@ -48,4 +48,15 @@ export class MinimumPurchaseDiscountController {
       data: discount,
     });
   }
+  static async getAll(req: Request, res: Response) {
+    const { query } = validate(MinimumDiscountValidation.GET_MINIMUM_PURCHASE, {
+      query: req.query,
+    });
+    const discounts = await MinimumPurchaseDiscountService.getAll({ query });
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Discounts retrieved successfully",
+      data: discounts,
+    });
+  }
 }

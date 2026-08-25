@@ -19,22 +19,15 @@ export const orderAdminListSchema = z.object({
       "CONFIRMED",
       "CANCELLED",
     ]).optional(),
+    sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "status"]).default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
   }),
 });
 
 export const orderAdminUpdateSchema = z.object({
-  params: z.object({
-    id: z.string().uuid(),
-  }),
-  body: z.object({
-    status: orderAdminStatusSchema,
-  }),
+  params: z.object({ id: z.string().uuid() }),
+  body: z.object({ status: orderAdminStatusSchema }),
 });
 
-export type OrderAdminListInput = z.infer<
-  typeof orderAdminListSchema
->;
-
-export type OrderAdminUpdateInput = z.infer<
-  typeof orderAdminUpdateSchema
->;
+export type OrderAdminListInput = z.infer<typeof orderAdminListSchema>;
+export type OrderAdminUpdateInput = z.infer<typeof orderAdminUpdateSchema>;
