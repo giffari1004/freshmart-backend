@@ -29,6 +29,7 @@ import { authorizationRoute } from "./features/authorization/authorization.route
 import { socialLoginRoute } from "./features/social-login/social-login.route";
 import { discountCalculateRoute } from "./features/discount/calculate/discount-calculate-route";
 import { discountUsageRoute } from "./features/discount/usage/discount-usage-route";
+import { salesReportRoute } from "./features/report/sales-report/sales-report-route";
 
 const app = express();
 app.use(helmet());
@@ -77,6 +78,7 @@ app.use("/api/v1/authorization", authorizationRoute);
 app.use("/api/v1/social-login", socialLoginRoute);
 app.use("/api/discounts/calculate", discountCalculateRoute);
 app.use("/api/v1/discounts/usage", discountUsageRoute);
+app.use("/api/v1/reports/sales", salesReportRoute);
 // ===============================
 // 404 Handler
 // ===============================
