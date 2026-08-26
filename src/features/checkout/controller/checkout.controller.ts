@@ -1,13 +1,11 @@
+
+
 import { NextFunction, Request, Response } from "express";
-import { validate } from "../../../validate/validate";
-import { CheckoutPreviewRequest } from "../checkout.types";
-import { checkoutPreviewSchema } from "../validations/checkout.validation";
 import { CheckoutService } from "../services/checkout.service";
+import { CheckoutPreviewRequest } from "../checkout.types";
 
 export class CheckoutController {
-  constructor(
-    private readonly checkoutService = new CheckoutService(),
-  ){}
+  constructor(private readonly checkoutService = new CheckoutService()) {}
 
   getCheckoutPreview = async (
     req: Request,
@@ -15,31 +13,17 @@ export class CheckoutController {
     next: NextFunction,
   ) => {
     try {
-      if (!req.user){
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized",
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "Checkout preview retrieved successfully",
+          data: await this.checkoutService.getCheckoutPreview(
+            req.user!.id,
+            req.body as CheckoutPreviewRequest,
+          ),
         });
-      }
-      const payload = validate(
-        checkoutPreviewSchema,
-        {
-          body: req.body,
-        },
-      ).body as CheckoutPreviewRequest;
-
-      const result = 
-      await this.checkoutService.getCheckoutPreview(
-        req.user.id,
-        payload,
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: "Checkout preview retrieved successfully",
-        data: result,
-      });
-    } catch (error){
+    } catch (error) {
       next(error);
     }
   };

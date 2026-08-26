@@ -14,7 +14,15 @@ export class CartService {
 
     const storeProduct = await this.getStoreProduct(payload.storeProductId);
 
-    this.validateStock(storeProduct, payload.quantity);
+    const existingItem = await this.cartRepository.findCartItem(
+      cart.id,
+      storeProduct.id,
+    );
+    const nextQuantity = existingItem
+      ? existingItem.quantity + payload.quantity
+      : payload.quantity;
+
+    this.validateStock(storeProduct, nextQuantity);
 
     await this.saveCartItem(cart.id, storeProduct.id, payload.quantity);
     return this.getCart(userId);
@@ -92,19 +100,12 @@ export class CartService {
     quantity: number,
   ) {
     const item = await this.cartRepository.findCartItem(cartId, storeProductId);
-
-    if (!item) {
-      return this.cartRepository.createCartItem(
-        cartId,
-        storeProductId,
-        quantity,
-      );
-    }
-
-    return this.cartRepository.updateCartItemQuantity(
-      item.id,
-      item.quantity + quantity,
-    );
+    return item
+      ? this.cartRepository.updateCartItemQuantity(
+          item.id,
+          item.quantity + quantity,
+        )
+      : this.cartRepository.createCartItem(cartId, storeProductId, quantity);
   }
   private async getCartItem(itemId: string, userId: string) {
     const item = await this.cartRepository.findCartItemById(itemId, userId);

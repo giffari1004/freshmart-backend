@@ -6,13 +6,12 @@ export class CartController {
 
   addToCart = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.cartService.addToCart(req.user!.id, req.body);
-
-      res.status(201).json({
-        success: true,
-        message: "Product added to this.cartService.",
-        data: result,
-      });
+      return this.respond(
+        res,
+        201,
+        "Product added to cart",
+        await this.cartService.addToCart(req.user!.id, req.body),
+      );
     } catch (error) {
       next(error);
     }
@@ -20,11 +19,12 @@ export class CartController {
 
   getCart = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.cartService.getCart(req.user!.id);
-      res.status(200).json({
-        success: true,
-        data: result,
-      });
+      return this.respond(
+        res,
+        200,
+        undefined,
+        await this.cartService.getCart(req.user!.id),
+      );
     } catch (error) {
       next(error);
     }
@@ -32,16 +32,16 @@ export class CartController {
 
   updateQuantity = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.cartService.updateQuantity(
-        req.user!.id,
-        req.params.id as string,
-        req.body,
+      return this.respond(
+        res,
+        200,
+        "cart updated",
+        await this.cartService.updateQuantity(
+          req.user!.id,
+          req.params.id as string,
+          req.body,
+        ),
       );
-      res.status(200).json({
-        success: true,
-        message: "cart updated",
-        data: result,
-      });
     } catch (error) {
       next(error);
     }
@@ -49,15 +49,15 @@ export class CartController {
 
   removeItem = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.cartService.removeItem(
-        req.user!.id,
-        req.params.id as string,
+      return this.respond(
+        res,
+        200,
+        "item removed",
+        await this.cartService.removeItem(
+          req.user!.id,
+          req.params.id as string,
+        ),
       );
-      res.status(200).json({
-        success: true,
-        message: "item removed",
-        data: result,
-      });
     } catch (error) {
       next(error);
     }
@@ -65,14 +65,25 @@ export class CartController {
 
   clearCart = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.cartService.clearCart(req.user!.id);
-
-      res.status(200).json({
-        success: true,
-        data: result,
-      });
+      return this.respond(
+        res,
+        200,
+        undefined,
+        await this.cartService.clearCart(req.user!.id),
+      );
     } catch (error) {
       next(error);
     }
   };
+
+  private respond(
+    res: Response,
+    status: number,
+    message: string | undefined,
+    data: unknown,
+  ) {
+    return res
+      .status(status)
+      .json({ success: true, ...(message ? { message } : {}), data });
+  }
 }

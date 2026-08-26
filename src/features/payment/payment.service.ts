@@ -1,48 +1,61 @@
 import { BadRequestError } from "../../errors/BadRequestError";
-
+import { NotFoundError } from "../../errors/NotFoundError";
 import { snap } from "../../configs/midtrans-client-configs";
+import { PaymentRepository } from "./payment.repository";
+import { CreatePaymentRequest, CreatePaymentResponse } from "./payment.type";
 
-import {
-  CreatePaymentRequest,
-  CreatePaymentResponse,
-} from "./payment.type";
+type PaymentRecord = NonNullable<
+  Awaited<ReturnType<PaymentRepository["getPaymentForOrder"]>>
+>;
 
 export class PaymentService {
+  constructor(private readonly paymentRepository = new PaymentRepository()) {}
+
   async createPayment(
+    userId: string,
     payload: CreatePaymentRequest,
   ): Promise<CreatePaymentResponse> {
-    if (!payload.orderId) {
-      throw new BadRequestError(
-        "Order ID is required",
-      );
-    }
+    const payment = await this.getPendingPayment(userId, payload.orderId);
+    if (payment.snapToken) return this.toResponse(payment);
+    const transaction = await snap.createTransaction({
+      transaction_details: {
+        order_id: payment.gatewayOrderId!,
+        gross_amount: Number(payment.amount),
+      },
+    });
+    const expiredAt =
+      payment.expiredAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const updated = await this.paymentRepository.updatePaymentGatewayData(
+      payment.id,
+      {
+        gatewayOrderId: payment.gatewayOrderId!,
+        snapToken: transaction.token,
+        paymentUrl: transaction.redirect_url,
+        expiredAt,
+      },
+    );
+    return this.toResponse(updated);
+  }
 
-    if (payload.grossAmount <= 0) {
-      throw new BadRequestError(
-        "Payment amount must be greater than zero",
-      );
-    }
+  private async getPendingPayment(userId: string, orderId: string) {
+    const payment = await this.paymentRepository.getPaymentForOrder(
+      userId,
+      orderId,
+    );
+    if (!payment) throw new NotFoundError("Payment not found");
+    if (payment.status !== "PENDING")
+      throw new BadRequestError("Payment is no longer available");
+    if (!payment.gatewayOrderId)
+      throw new BadRequestError("Payment gateway order ID is not available");
+    return payment;
+  }
 
-    const transaction =
-      await snap.createTransaction({
-        transaction_details: {
-          order_id:
-            payload.orderId,
-
-          gross_amount:
-            payload.grossAmount,
-        },
-      });
-
+  private toResponse(payment: PaymentRecord): CreatePaymentResponse {
     return {
-      orderId:
-        payload.orderId,
-
-      snapToken:
-        transaction.token,
-
-      paymentUrl:
-        transaction.redirect_url,
+      orderId: payment.orderId,
+      paymentId: payment.id,
+      snapToken: payment.snapToken ?? "",
+      paymentUrl: payment.paymentUrl ?? "",
     };
   }
 }
