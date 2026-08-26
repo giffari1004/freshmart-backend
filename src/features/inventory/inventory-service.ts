@@ -14,29 +14,20 @@
     accessStoreForAdmin,
     beforeAndAfterStock,
     checkInventoryDuplicate,
-    createMeta,
     findInventoryOrError,
-    getPagination,
+    whereInventory,
+    whereStockJournal,
   } from "./inventory-helper";
   import { INVENTORY_SELECT_FIELD } from "./inventory-constant";
   import { AuthUser } from "../../middlewares/auth-middleware";
+import { getPagination } from "../../helper/getPagination";
+import { createMeta } from "../../helper/createMeta";
 
   export class InventoryService {
     static async getAllInventory({ query }: getAllInventorySchema) {
       const { page, limit, search, sortBy, sortOrder, storeId } = query;
       const { skip, take } = getPagination(page, limit);
-      const where: Prisma.StoreProductWhereInput = {
-        deletedAt: null,
-        ...(search && {
-          product: {
-            name: {
-              contains: search,
-              mode: "insensitive",
-            },
-          },
-        }),
-        ...(storeId && { storeId }),
-      };
+      const where = whereInventory(search,storeId)
       const [inventories, totalData] = await Promise.all([
         prisma.storeProduct.findMany({
           where,
@@ -129,10 +120,7 @@
       accessStoreForAdmin(user, result.storeId);
       const { page, limit, type, sortBy, sortOrder } = query;
       const { skip, take } = getPagination(page, limit);
-      const where: Prisma.StockJournalWhereInput = {
-        storeProductId: params.id,
-        ...(type && { type }),
-      };
+      const where = whereStockJournal(params.id,type) 
       const [histories, totalData] = await Promise.all([
         prisma.stockJournal.findMany({
           where,
