@@ -1,8 +1,18 @@
-import { Prisma } from "../../../generated/prisma";
 import { prisma } from "../../configs/prisma-client-config";
-import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
-import { uploadToCloudinary } from "../../utils/cloudinary";
+import { createMeta } from "../../helper/createMeta";
+import { getPagination } from "../../helper/getPagination";
+import { findCategoryOrError } from "../category/category-helper";
+import { PRODUCT_INCLUDE } from "./product-constant";
+import {
+  checkDuplicateProduct,
+  formatProductDetail,
+  createImageCloudinary,
+  findProductOrError,
+  uploadProductImages,
+  whereProduct,
+  whereStoreProduct,
+} from "./product-helper";
 import {
   getAllProductSchema,
   createProductSchema,
@@ -14,14 +24,8 @@ import {
 export class ProductService {
   static async getAllAdminProduct({ query }: getAllProductSchema) {
     const { page, limit, search, categoryId, sortBy, sortOrder } = query;
-    const skip = (page - 1) * limit;
-    const take = limit;
-
-    const where: Prisma.ProductWhereInput = {
-      deletedAt: null,
-      ...(search && { name: { contains: search, mode: "insensitive" } }),
-      ...(categoryId && { categoryId }),
-    };
+    const { skip, take } = getPagination(page, limit);
+    const where = whereProduct(search, categoryId);
     const [products, totalData] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -32,14 +36,10 @@ export class ProductService {
       }),
       prisma.product.count({ where }),
     ]);
+    const meta = createMeta(page, limit, totalData);
     return {
       products,
-      meta: {
-        page,
-        limit,
-        totalData,
-        totalPages: Math.ceil(totalData / limit),
-      },
+      meta,
     };
   }
   static async create({
@@ -51,20 +51,9 @@ export class ProductService {
     createdById: string;
     files: Express.Multer.File[];
   }) {
-    const category = await prisma.productCategory.findUnique({
-      where: { id: body.categoryId },
-    });
-    if (!category || category.deletedAt) {
-      throw new NotFoundError("Category not found");
-    }
-    const existingName = await prisma.product.findUnique({
-      where: { name: body.name },
-    });
-    if (existingName) throw new ConflictError("Product name already exists");
-
-    const imageUrls = await Promise.all(
-      files.map((file) => uploadToCloudinary(file.buffer, "products")),
-    );
+    await findCategoryOrError(body.categoryId);
+    await checkDuplicateProduct(body.name);
+    const imageUrls = await uploadProductImages(files);
     const createProductAcc = await prisma.product.create({
       data: {
         name: body.name,
@@ -73,38 +62,16 @@ export class ProductService {
         weight: body.weight,
         categoryId: body.categoryId,
         createdById,
-        images: {
-          create: imageUrls.map((url, index) => ({
-            imageUrl: url,
-            isPrimary: index === 0,
-          })),
-        },
+        images: { create: createImageCloudinary(imageUrls) },
       },
       include: { images: true },
     });
     return createProductAcc;
   }
   static async update({ params, body }: updateProductSchema) {
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id },
-    });
-    if (!existingProduct || existingProduct.deletedAt) {
-      throw new NotFoundError("Product not found");
-    }
-    if (body.categoryId) {
-      const category = await prisma.productCategory.findUnique({
-        where: { id: body.categoryId },
-      });
-      if (!category || category.deletedAt) {
-        throw new NotFoundError("Category not found");
-      }
-    }
-    if (body.name) {
-      const duplicate = await prisma.product.findFirst({
-        where: { name: body.name, id: { not: params.id } },
-      });
-      if (duplicate) throw new ConflictError("Product name already exists");
-    }
+    await findProductOrError(params.id);
+    if (body.categoryId) await findCategoryOrError(body.categoryId);
+    if (body.name) await checkDuplicateProduct(body.name, params.id);
     const updateProductAcc = await prisma.product.update({
       where: { id: params.id },
       data: {
@@ -119,12 +86,7 @@ export class ProductService {
     return updateProductAcc;
   }
   static async delete({ params }: deleteProductSchema) {
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id },
-    });
-    if (!existingProduct || existingProduct.deletedAt) {
-      throw new NotFoundError("Product not found");
-    }
+    await findProductOrError(params.id);
     const deleteProductAcc = await prisma.product.update({
       where: { id: params.id },
       data: { deletedAt: new Date() },
@@ -134,22 +96,8 @@ export class ProductService {
   static async getAllCustomerProduct({ query }: getCatalogSchema) {
     const { storeId, page, limit, search, sortBy, sortOrder, categoryId } =
       query;
-    const skip = (page - 1) * limit;
-    const take = limit;
-    const where: Prisma.StoreProductWhereInput = {
-      storeId,
-      deletedAt: null,
-      product: {
-        deletedAt: null,
-        ...(search && {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        }),
-        ...(categoryId && { categoryId }),
-      },
-    };
+    const { skip, take } = getPagination(page, limit);
+    const where = whereStoreProduct(storeId, search, categoryId);
     const [data, totalData] = await Promise.all([
       prisma.storeProduct.findMany({
         where,
@@ -160,25 +108,14 @@ export class ProductService {
             [sortBy]: sortOrder,
           },
         },
-        include: {
-          product: {
-            include: {
-              category: true,
-              images: { where: { isPrimary: true }, take: 1 },
-            },
-          },
-        },
+        include: PRODUCT_INCLUDE
       }),
       prisma.storeProduct.count({ where }),
     ]);
+    const meta = createMeta(page,limit, totalData);
     return {
       data,
-      meta: {
-        page,
-        limit,
-        totalData,
-        totalPages: Math.ceil(totalData / limit),
-      },
+      meta,
     };
   }
   static async getProductDetail({ query, params }: getProductDetailSchema) {
@@ -195,26 +132,12 @@ export class ProductService {
         product: {
           include: {
             category: true,
-            images: {orderBy: {isPrimary: "desc"}},
+            images: { orderBy: { isPrimary: "desc" } },
           },
         },
       },
     });
     if (!item) throw new NotFoundError("Product not found");
-    const stock = item.stockQuantity - item.reservedStock;
-    return {
-      id: item.product.id,
-      name: item.product.name,
-      description: item.product.description,
-      category: item.product.category.name,
-      price: item.priceOverride ?? item.product.basePrice,
-      stock,
-      isOutOfStock: stock <= 0,
-      images: item.product.images.map((img) => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        isPrimary: img.isPrimary,
-      })),
-    };
+    return formatProductDetail(item);
   }
 }

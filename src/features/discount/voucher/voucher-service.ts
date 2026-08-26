@@ -10,7 +10,8 @@ import {
   checkVoucherCodeDuplicate,
   findVoucherOrError,
 } from "./voucher-helper";
-import { createMeta, getPagination } from "../discount-helper";
+import { getPagination } from "../../../helper/getPagination";
+import { createMeta } from "../../../helper/createMeta";
 
 export class VoucherService {
   static async getAllVoucher({ query }: getAllVourcherSchema) {
