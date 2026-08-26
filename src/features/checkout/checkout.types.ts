@@ -8,10 +8,8 @@ export interface CheckoutItem {
   id: string;
   storeProductId: string;
   productId: string;
-
   productName: string;
   imageUrl: string | null;
-
   quantity: number;
   unitPrice: number;
   subtotal: number;
@@ -23,12 +21,10 @@ export interface CheckoutAddress {
   label: string;
   recipientName: string;
   phone: string;
-
   province: string;
   city: string;
   district: string;
   fullAddress: string;
-
   latitude: number;
   longitude: number;
 }
@@ -45,7 +41,6 @@ export interface CheckoutShipping {
   courierCode: string;
   serviceCode: string;
   serviceName: string;
-
   cost: number;
   etd: string | null;
 }
@@ -58,20 +53,13 @@ export interface CheckoutDiscount {
 
 export interface CheckoutPreviewResponse {
   items: CheckoutItem[];
-
   totalItems: number;
   totalWeight: number;
-
   subtotal: number;
-
   discount: CheckoutDiscount;
-
   shipping: CheckoutShipping;
-
   totalAmount: number;
-
   address: CheckoutAddress;
-
   store: CheckoutStore;
 }
 
@@ -84,6 +72,7 @@ export interface CheckoutOptionAddress {
   city: string;
   district: string;
   fullAddress: string;
+  isPrimary?: boolean;
 }
 
 export interface CheckoutOptionShipping {
