@@ -4,74 +4,40 @@ import {
   getAllUserSchema,
   updateStoreAdminSchema,
 } from "./admin-validation";
-import { Prisma } from "../../../generated/prisma";
 import { prisma } from "../../configs/prisma-client-config";
-import { ConflictError } from "../../errors/ConflictError";
 import { BcryptUtil } from "../../utils/bcrypt-util";
-import { NotFoundError } from "../../errors/NotFoundError";
+import { getPagination } from "../../helper/getPagination";
+import {
+  checkDuplicateEmail,
+  findStoreAdminOrError,
+  whereUser,
+} from "./admin-helper";
+import { createMeta } from "../../helper/createMeta";
+import {
+  ADMIN_DELETE_SELECT,
+  ADMIN_GET_SELECT,
+  ADMIN_UPDATE_CREATE_SELECT,
+} from "./admin-constant";
 export class AdminService {
   static async getAllUser({ query }: getAllUserSchema) {
     const { page, limit, search, role, sortBy, sortOrder } = query;
-    const skip = (page - 1) * limit;
-    const take = limit;
-    const where: Prisma.UserWhereInput = {
-      deletedAt: null,
-      ...(search && {
-        OR: [
-          {
-            email: {
-              contains: search,
-              mode: "insensitive",
-            },
-          },
-          {
-            name: {
-              contains: search,
-              mode: "insensitive",
-            },
-          },
-        ],
-      }),
-      ...(role && { role }),
-    };
+    const { skip, take } = getPagination(page, limit);
+    const where = whereUser(search, role);
     const [users, totalData] = await Promise.all([
       prisma.user.findMany({
         where,
         skip,
         take,
         orderBy: { [sortBy]: sortOrder },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          storeId: true,
-          isVerified: true,
-          createdAt: true,
-        },
+        select: ADMIN_GET_SELECT,
       }),
       prisma.user.count({ where }),
     ]);
-    return {
-      users,
-      meta: {
-        page,
-        limit,
-        totalData,
-        totalPages: Math.ceil(totalData / limit),
-      },
-    };
+    const meta = createMeta(page, limit, totalData);
+    return { users, meta };
   }
   static async create({ body }: createStoreAdminSchema) {
-    const existingEmail = await prisma.user.findUnique({
-      where: {
-        email: body.email,
-      },
-    });
-    if (existingEmail)
-      throw new ConflictError(
-        "Account is not valid , Pleease check you email or password again",
-      );
+    await checkDuplicateEmail(body.email);
     const hashedPassword = await BcryptUtil.hashPassword(body.password);
     const createAcc = await prisma.user.create({
       data: {
@@ -81,24 +47,12 @@ export class AdminService {
         storeId: body.storeId,
         role: "STORE_ADMIN",
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        storeId: true,
-        role: true,
-      },
+      select: ADMIN_UPDATE_CREATE_SELECT,
     });
     return createAcc;
   }
   static async update({ params, body }: updateStoreAdminSchema) {
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        id: params.id,
-      },
-    });
-    if (!existingUser || existingUser.role !== "STORE_ADMIN")
-      throw new NotFoundError("Account is not found");
+    await findStoreAdminOrError(params.id);
     const updateAcc = await prisma.user.update({
       where: {
         id: params.id,
@@ -107,24 +61,12 @@ export class AdminService {
         name: body.name,
         storeId: body.storeId,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        storeId: true,
-        role: true,
-      },
+      select: ADMIN_UPDATE_CREATE_SELECT,
     });
     return updateAcc;
   }
   static async delete({ params }: deleteStoreAdminSchema) {
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        id: params.id,
-      },
-    });
-    if (!existingUser || existingUser.role !== "STORE_ADMIN" || existingUser.deletedAt)
-      throw new NotFoundError("Account is not found");
+    await findStoreAdminOrError(params.id);
     const deleteAcc = await prisma.user.update({
       where: {
         id: params.id,
@@ -132,12 +74,7 @@ export class AdminService {
       data: {
         deletedAt: new Date(),
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        deletedAt: true,
-      },
+      select: ADMIN_DELETE_SELECT,
     });
     return deleteAcc;
   }

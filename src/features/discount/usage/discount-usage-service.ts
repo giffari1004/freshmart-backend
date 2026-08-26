@@ -1,8 +1,10 @@
 import { Prisma } from "../../../../generated/prisma";
 import { prisma } from "../../../configs/prisma-client-config";
 import { getAllUsageSchema } from "./discount-usage-validation";
-import { createMeta, getPagination, resolveStoreFilter } from "./discount-usage-helper";
+import { resolveStoreFilter } from "./discount-usage-helper";
 import { AuthUser } from "../../../middlewares/auth-middleware";
+import { getPagination } from "../../../helper/getPagination";
+import { createMeta } from "../../../helper/createMeta";
 
 export class DiscountUsageService {
   static async getAllUsage({ query }: getAllUsageSchema, user: AuthUser) {

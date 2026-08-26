@@ -1,20 +1,6 @@
 import { prisma } from "../../../configs/prisma-client-config";
 import { AuthUser } from "../../../middlewares/auth-middleware";
 
-export function getPagination(page: number, limit: number) {
-  return {
-    skip: (page - 1) * limit,
-    take: limit,
-  };
-}
-export function createMeta(page: number, limit: number, totalData: number) {
-  return {
-    page,
-    limit,
-    totalData,
-    totalPages: Math.ceil(totalData / limit),
-  };
-}
 export function resolveStoreFilter(user: AuthUser, storeId?: string) {
   if (user.role === "SUPER_ADMIN") return storeId;
   return user.storeId ?? undefined;
