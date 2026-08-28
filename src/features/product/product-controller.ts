@@ -6,7 +6,7 @@ import { ProductService } from "./product-service";
 
 export class ProductController {
   static async getAll(req: Request, res: Response) {
-    const { query } = validate(ProductValidation.GET_ALL_PRODUCT, {
+    const { query } = validate(ProductValidation.GET_ALL_ADMIN_PRODUCT, {
       query: req.query,
     });
     const { products, meta } = await ProductService.getAllAdminProduct({ query });
