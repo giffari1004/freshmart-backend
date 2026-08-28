@@ -14,15 +14,15 @@ import {
   whereStoreProduct,
 } from "./product-helper";
 import {
-  getAllProductSchema,
+  getAllAdminProductSchema,
   createProductSchema,
   updateProductSchema,
   deleteProductSchema,
-  getCatalogSchema,
+  getAllCustomerProductSchema,
   getProductDetailSchema,
 } from "./product-validation";
 export class ProductService {
-  static async getAllAdminProduct({ query }: getAllProductSchema) {
+  static async getAllAdminProduct({ query }: getAllAdminProductSchema) {
     const { page, limit, search, categoryId, sortBy, sortOrder } = query;
     const { skip, take } = getPagination(page, limit);
     const where = whereProduct(search, categoryId);
@@ -93,7 +93,7 @@ export class ProductService {
     });
     return deleteProductAcc;
   }
-  static async getAllCustomerProduct({ query }: getCatalogSchema) {
+  static async getAllCustomerProduct({ query }: getAllCustomerProductSchema) {
     const { storeId, page, limit, search, sortBy, sortOrder, categoryId } =
       query;
     const { skip, take } = getPagination(page, limit);

@@ -44,7 +44,6 @@ export class AdminService {
         name: body.name,
         email: body.email,
         passwordHash: hashedPassword,
-        storeId: body.storeId,
         role: "STORE_ADMIN",
       },
       select: ADMIN_UPDATE_CREATE_SELECT,
@@ -59,7 +58,6 @@ export class AdminService {
       },
       data: {
         name: body.name,
-        storeId: body.storeId,
       },
       select: ADMIN_UPDATE_CREATE_SELECT,
     });

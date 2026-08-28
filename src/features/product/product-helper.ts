@@ -61,6 +61,7 @@ export function formatProductDetail(
   const stock = item.stockQuantity - item.reservedStock;
   return {
     id: item.product.id,
+    storeProductId: item.id,
     name: item.product.name,
     description: item.product.description,
     category: item.product.category.name,

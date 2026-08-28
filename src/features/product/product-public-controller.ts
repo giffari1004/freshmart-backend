@@ -3,10 +3,9 @@ import { validate } from "../../validate/validate";
 import { ProductValidation } from "./product-validation";
 import { StatusCodes } from "http-status-codes";
 import { ProductService } from "./product-service";
-import { success } from "zod";
 export class customerProductController {
   static async getAllCatalog(req: Request, res: Response) {
-    const { query } = validate(ProductValidation.GET_CATALOG, {
+    const { query } = validate(ProductValidation.GET_ALL_CUSTOMER_PRODUCT, {
       query: req.query,
     });
     const { data, meta } = await ProductService.getAllCustomerProduct({
