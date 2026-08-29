@@ -72,9 +72,6 @@ export class AddressService {
         phone,
         province,
         city,
-        // DEPENDENSI SCHEMA: kolom `rajaOngkirCityId` belum ada di model
-        // UserAddress saat ini — baris ini akan gagal type-check sampai
-        // migrasi ditambahkan. Lihat catatan di address.validation.ts.
         rajaOngkirCityId,
         district,
         fullAddress,
@@ -200,8 +197,16 @@ export class AddressService {
    * hasilnya dipakai untuk isi `city` (nama) sekaligus `rajaOngkirCityId`
    * (ID) di form, bukan diketik bebas.
    */
-  static async searchCities({ query }: searchCitiesSchema) {
-    return searchCities(query.search);
+  static async searchCities(query: string) {
+    const destinations = await searchCities(query);
+    return destinations.map((d) => ({
+      cityId: String(d.id),
+      cityName: d.label,
+      provinceId: "",
+      province: d.province,
+      type: d.district,
+      postalCode: d.zipCode,
+    }));
   }
 
   private static async findOwned(userId: string, addressId: string) {

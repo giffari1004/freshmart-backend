@@ -9,75 +9,37 @@ export interface ShippingOption {
   etd: string;
 }
 
-export interface RajaOngkirCity {
-  cityId: string;
-  cityName: string;
-  provinceId: string;
+export interface RajaOngkirDestination {
+  id: number;
+  label: string;
   province: string;
-  type: string; // "Kota" | "Kabupaten"
-  postalCode: string;
+  city: string;
+  district: string;
+  subdistrict: string;
+  zipCode: string;
 }
 
-// Cache in-memory sederhana untuk daftar kota — RajaOngkir SECARA RESMI
-// mengizinkan (bahkan menganjurkan) hasil `province`/`city`/`subdistrict`
-// di-cache, karena datanya jarang berubah dan tidak boleh di-request
-// berulang tanpa aksi user.
-//
-// Catatan: cache ini reset tiap kali server restart, dan tidak sinkron
-// antar instance kalau nanti di-scale horizontal. Untuk production yang
-// lebih serius, upgrade ke tabel cache di database (butuh migrasi schema
-// terpisah, di luar scope perbaikan ini).
-let cityCache: RajaOngkirCity[] | null = null;
-let cityCacheFetchedAt = 0;
-const CITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 jam
-
-/**
- * PENTING: struktur request/response di bawah mengikuti RajaOngkir
- * "Starter API" versi lama (endpoint `/cost` dan `/city`, courier
- * dipisah `:`). RajaOngkir sudah beberapa kali ganti versi API (termasuk
- * migrasi ke Komerce) — CEK ULANG dokumentasi resmi sesuai paket/API key
- * yang benar-benar dipakai tim sebelum dianggap final.
- */
-
-/**
- * Ambil daftar seluruh kota/kabupaten dari RajaOngkir (di-cache 24 jam).
- * Dipakai untuk populate dropdown/autocomplete kota di form alamat & toko
- * — user WAJIB pilih dari daftar ini, bukan input teks bebas, supaya
- * `cityId` yang tersimpan valid buat dipakai ke endpoint `/cost` nanti.
- */
-export async function getCities(): Promise<RajaOngkirCity[]> {
-  const isCacheValid =
-    cityCache !== null && Date.now() - cityCacheFetchedAt < CITY_CACHE_TTL_MS;
-  if (isCacheValid) return cityCache as RajaOngkirCity[];
-
-  const { data } = await axios.get(`${RAJAONGKIR_BASE_URL}/city`, {
-    headers: { key: RAJAONGKIR_API_KEY },
-  });
-
-  const results = data?.rajaongkir?.results ?? [];
-  cityCache = results.map((city: any) => ({
-    cityId: city.city_id,
-    cityName: city.city_name,
-    provinceId: city.province_id,
-    province: city.province,
-    type: city.type,
-    postalCode: city.postal_code,
-  }));
-  cityCacheFetchedAt = Date.now();
-
-  return cityCache as RajaOngkirCity[];
-}
-
-/**
- * Cari kota berdasarkan keyword (dari cache), buat fitur
- * autocomplete/search di form alamat.
- */
-export async function searchCities(keyword: string): Promise<RajaOngkirCity[]> {
-  const cities = await getCities();
-  const lowerKeyword = keyword.toLowerCase();
-  return cities.filter((city) =>
-    city.cityName.toLowerCase().includes(lowerKeyword),
+export async function searchCities(
+  keyword: string,
+): Promise<RajaOngkirDestination[]> {
+  const { data } = await axios.get(
+    `${RAJAONGKIR_BASE_URL}/destination/domestic-destination`,
+    {
+      headers: { key: RAJAONGKIR_API_KEY },
+      params: { search: keyword, limit: 20, offset: 0 },
+      timeout: 5000,
+    },
   );
+  
+  return (data?.data ?? []).map((d: any) => ({
+    id: d.id,
+    label: d.label,
+    province: d.province_name,
+    city: d.city_name,
+    district: d.district_name,
+    subdistrict: d.subdistrict_name,
+    zipCode: d.zip_code,
+  }));
 }
 
 /**
@@ -94,7 +56,7 @@ export async function getShippingOptions(
   couriers: string[] = ["jne", "pos", "tiki"],
 ): Promise<ShippingOption[]> {
   const { data } = await axios.post(
-    `${RAJAONGKIR_BASE_URL}/cost`,
+    `${RAJAONGKIR_BASE_URL}/calculate/domestic-cost`,
     {
       origin: originCityId,
       destination: destinationCityId,
