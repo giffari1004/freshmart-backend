@@ -1,5 +1,8 @@
 import { OrderAdminRepository } from "./order-admin.repository";
-import { OrderAdminListInput } from "./order-admin.type";
+import {
+  OrderAdminListInput,
+  AdminOrderStatus,
+} from "./order-admin.type";
 
 export class OrderAdminService {
   constructor(
@@ -15,7 +18,7 @@ export class OrderAdminService {
 
   async updateStatus(
     orderId: string,
-    status: "PROCESSED" | "SHIPPED" | "CANCELLED",
+    status: AdminOrderStatus,
     actorId: string,
     storeId: string | null,
   ) {

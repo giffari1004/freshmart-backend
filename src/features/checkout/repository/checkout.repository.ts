@@ -55,14 +55,31 @@ export class CheckoutRepository {
     });
   }
 
-  async getCheckoutShippingMethods(storeId: string, destinationCity: string) {
-    return prisma.shippingMethod.findMany({
-      where: {
-        storeId,
-        destinationCity,
-        store: { isActive: true, deletedAt: null },
-      },
-      orderBy: { cost: "asc" },
-    });
+  async createShippingMethodSnapshots(
+    storeId: string,
+    destinationCity: string,
+    options: Array<{
+      courierCode: string;
+      serviceCode: string;
+      serviceName: string;
+      cost: number;
+      etd: string;
+    }>,
+  ) {
+    return prisma.$transaction(
+      options.map((option) =>
+        prisma.shippingMethod.create({
+          data: {
+            storeId,
+            destinationCity,
+            courierCode: option.courierCode,
+            serviceCode: option.serviceCode,
+            serviceName: option.serviceName,
+            cost: option.cost,
+            etd: option.etd,
+          },
+        }),
+      ),
+    );
   }
 }

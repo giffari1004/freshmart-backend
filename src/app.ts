@@ -59,6 +59,7 @@ app.get("/", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+app.use("/api/v1/admin/orders", orderAdminRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/admin/products", productRoute);
@@ -73,7 +74,6 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/admin/discounts", discountRoute);
 app.use("/api/v1/discounts", discountPublicRoute);
 app.use("/api/v1/admin/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
-app.use("/api/v1/admin/orders", orderAdminRouter);
 app.use("/api/v1/inventory", inventoryRoute);
 app.use('/api/v1/admin/bogo', bogoRoute);
 app.use('/api/v1/bogo', bogoPublicRoute);

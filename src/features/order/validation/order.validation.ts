@@ -32,6 +32,12 @@ export const orderListQuerySchema = z.object({
     ])
     .optional(),
 
+  orderNumber: z.string().trim().min(1).max(50).optional(),
+
+  fromDate: z.string().date().optional(),
+
+  toDate: z.string().date().optional(),
+
   sortBy: z
     .enum([
       "createdAt",
@@ -44,7 +50,13 @@ export const orderListQuerySchema = z.object({
   sortOrder: z
     .enum(["asc", "desc"])
     .default("desc"),
-});
+}).refine(
+  ({ fromDate, toDate }) => !fromDate || !toDate || fromDate <= toDate,
+  {
+    message: "fromDate must be before or equal to toDate",
+    path: ["toDate"],
+  },
+);
 
 export type OrderListQuery = z.infer<
   typeof orderListQuerySchema

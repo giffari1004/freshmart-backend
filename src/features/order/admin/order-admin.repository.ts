@@ -4,66 +4,20 @@ import { BadRequestError } from "../../../errors/BadRequestError";
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { OrderAdminListInput } from "./order-admin.type";
 
-type AdminOrderStatus =
-  | "PROCESSED"
-  | "SHIPPED"
-  | "CANCELLED";
+type AdminOrderStatus = "PROCESSED" | "SHIPPED" | "CANCELLED";
+type AdminListQuery = OrderAdminListInput["query"];
 
 export class OrderAdminRepository {
-  async getOrders(
-    query: OrderAdminListInput["query"],
-    storeId: string | null,
-  ) {
-    const {
-      page,
-      limit,
-      status,
-      sortBy,
-      sortOrder,
-    } = query;
-
-    const where: Prisma.OrderWhereInput = {
-      ...(storeId ? { storeId } : {}),
-      ...(status ? { status } : {}),
-    };
-
-    const skip = (page - 1) * limit;
-
-    const [orders, totalItems] = await prisma.$transaction([
-      prisma.order.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [
-          {
-            [sortBy]: sortOrder,
-          },
-          {
-            id: "asc",
-          },
-        ],
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          subtotal: true,
-          discountAmount: true,
-          shippingCost: true,
-          totalAmount: true,
-          createdAt: true,
-        },
-      }),
-
-      prisma.order.count({
-        where,
-      }),
-    ]);
+  async getOrders(query: AdminListQuery, storeId: string | null) {
+    const where = buildWhere(query, storeId);
+    const skip = (query.page - 1) * query.limit;
+    const [orders, totalItems] = await fetchOrders(where, query, skip);
 
     return {
       orders,
       totalItems,
-      page,
-      limit,
+      page: query.page,
+      limit: query.limit,
     };
   }
 
@@ -74,81 +28,113 @@ export class OrderAdminRepository {
     storeId: string | null,
   ) {
     return prisma.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({
-        where: {
-          id: orderId,
-          ...(storeId ? { storeId } : {}),
-        },
-        select: {
-          id: true,
-          status: true,
-        },
-      });
-
-      if (!order) {
-        throw new NotFoundError("Order not found");
-      }
-
-      const allowed = isValidTransition(
-        order.status,
-        status,
-      );
-
-      if (!allowed) {
-        throw new BadRequestError(
-          `Invalid order status transition: ${order.status} -> ${status}`,
-        );
-      }
-
-      const updated = await tx.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          status,
-          shippedAt:
-            status === "SHIPPED"
-              ? new Date()
-              : undefined,
-          cancelledAt:
-            status === "CANCELLED"
-              ? new Date()
-              : undefined,
-        },
-      });
-
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          status,
-          changedById: actorId,
-          notes: `Order status changed by admin: ${order.status} -> ${status}`,
-        },
-      });
-
-      return updated;
+      const order = await findOrderForUpdate(tx, orderId, storeId);
+      validateTransition(order.status, status);
+      return updateOrderStatus(tx, order, status, actorId);
     });
   }
 }
 
-function isValidTransition(
+function buildWhere(
+  query: AdminListQuery,
+  storeId: string | null,
+): Prisma.OrderWhereInput {
+  return {
+    ...(storeId ? { storeId } : {}),
+    ...(query.storeId ? { storeId: query.storeId } : {}),
+    ...(query.status ? { status: query.status } : {}),
+  };
+}
+
+function fetchOrders(
+  where: Prisma.OrderWhereInput,
+  query: AdminListQuery,
+  skip: number,
+) {
+  return prisma.$transaction([
+    prisma.order.findMany({
+      where,
+      skip,
+      take: query.limit,
+      orderBy: [
+        { [query.sortBy]: query.sortOrder },
+        { id: "asc" },
+      ],
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        subtotal: true,
+        discountAmount: true,
+        shippingCost: true,
+        totalAmount: true,
+        createdAt: true,
+        store: {
+          select: { id: true, name: true, code: true },
+        },
+      },
+    }),
+    prisma.order.count({ where }),
+  ]);
+}
+
+function findOrderForUpdate(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  storeId: string | null,
+) {
+  return tx.order.findFirst({
+    where: {
+      id: orderId,
+      ...(storeId ? { storeId } : {}),
+    },
+    select: { id: true, status: true },
+  }).then((order) => {
+    if (!order) throw new NotFoundError("Order not found");
+    return order;
+  });
+}
+
+function validateTransition(
   current: string,
   next: AdminOrderStatus,
-): boolean {
-  if (next === "PROCESSED") {
-    return current === "PAID";
-  }
+): void {
+  const valid =
+    (next === "PROCESSED" && current === "WAITING_CONFIRMATION") ||
+    (next === "SHIPPED" && current === "PROCESSED") ||
+    (next === "CANCELLED" && ["PAID", "WAITING_CONFIRMATION", "PROCESSED"].includes(current));
 
-  if (next === "SHIPPED") {
-    return current === "PROCESSED";
-  }
-
-  if (next === "CANCELLED") {
-    return (
-      current === "PAID" ||
-      current === "PROCESSED"
+  if (!valid) {
+    throw new BadRequestError(
+      `Invalid order status transition: ${current} -> ${next}`,
     );
   }
+}
 
-  return false;
+function updateOrderStatus(
+  tx: Prisma.TransactionClient,
+  order: { id: string; status: string },
+  status: AdminOrderStatus,
+  actorId: string,
+) {
+  const shippedAt = status === "SHIPPED" ? new Date() : undefined;
+
+  return tx.order.update({
+    where: { id: order.id },
+    data: {
+      status,
+      shippedAt,
+      cancelledAt: status === "CANCELLED" ? new Date() : undefined,
+    },
+  }).then(async (updated) => {
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        status,
+        changedById: actorId,
+        notes: `Order status changed by admin: ${order.status} -> ${status}`,
+      },
+    });
+    return updated;
+  });
 }

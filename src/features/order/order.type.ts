@@ -62,6 +62,13 @@ export interface OrderDetailResponse {
   shippingCost: number;
   totalAmount: number;
   payment: { method: string; status: string; amount: number } | null;
+  statusHistory: OrderStatusHistoryResponse[];
+}
+
+export interface OrderStatusHistoryResponse {
+  status: string;
+  notes: string | null;
+  createdAt: string;
 }
 
 export const ORDER_LIST_STATUS_VALUES = [
@@ -96,6 +103,9 @@ export interface OrderListQuery {
   page: number;
   limit: number;
   status?: OrderListStatus;
+  orderNumber?: string;
+  fromDate?: string;
+  toDate?: string;
   sortBy: OrderListSortBy;
   sortOrder: OrderListSortOrder;
 }

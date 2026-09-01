@@ -73,7 +73,7 @@ export class PaymentWebhookService {
     const statuses: Record<string, WebhookStatus> = {
       settlement: {
         paymentStatus: "SETTLEMENT",
-        orderStatus: "PAID",
+        orderStatus: "WAITING_CONFIRMATION",
         releaseStock: false,
       },
       expire: {

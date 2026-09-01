@@ -1,31 +1,11 @@
-import { BadRequestError } from "../../../errors/BadRequestError";
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { CHECKOUT_MESSAGE } from "../constants/checkout.constant";
 import { CheckoutRepository } from "../repository/checkout.repository";
-import {
-  calculateDistanceKm,
-  isWithinServiceRadius,
-} from "../utils/checkout.distance.util";
-import { validateCheckoutStock } from "../utils/checkout.stock.util";
-import { validateSingleStore } from "../utils/checkout.store.util";
 
 type CheckoutCart = NonNullable<
   Awaited<ReturnType<CheckoutRepository["getCheckoutPreview"]>>
 >;
-type CheckoutAddressRecord = NonNullable<
-  Awaited<ReturnType<CheckoutRepository["getUserAddress"]>>
->;
-type CheckoutStoreRecord =
-  CheckoutCart["items"][number]["storeProduct"]["store"];
-
-export function getFirstStore(cart: CheckoutCart): CheckoutStoreRecord {
-  if (!cart?.items.length) throw new NotFoundError(CHECKOUT_MESSAGE.CART_EMPTY);
-  const item = cart.items[0];
-  if (!item || !item.storeProduct.store.isActive)
-    throw new BadRequestError(CHECKOUT_MESSAGE.STORE_NOT_FOUND);
-  validateSingleStore(cart.items, item.storeProduct.store.id);
-  return item.storeProduct.store;
-}
+type CheckoutStoreProduct = CheckoutCart["items"][number]["storeProduct"];
 
 export async function getAddress(
   repository: CheckoutRepository,
@@ -37,23 +17,16 @@ export async function getAddress(
   return address;
 }
 
-export function validateStoreDistance(
-  address: CheckoutAddressRecord,
-  store: CheckoutStoreRecord,
-): number {
-  const distanceKm = calculateDistanceKm(
-    address.latitude,
-    address.longitude,
-    store.latitude,
-    store.longitude,
-  );
-  if (!isWithinServiceRadius(distanceKm, store.maxServiceRadiusKm))
-    throw new BadRequestError(CHECKOUT_MESSAGE.STORE_OUT_OF_RADIUS);
-  return distanceKm;
-}
-
-export function validateStock(cart: CheckoutCart): void {
-  validateCheckoutStock(cart.items);
+export function applyStoreSelection(
+  cart: CheckoutCart,
+  storeProducts: CheckoutStoreProduct[],
+): CheckoutCart {
+  const selected = new Map(storeProducts.map((item) => [item.productId, item]));
+  const items = cart.items.map((item) => ({
+    ...item,
+    storeProduct: selected.get(item.storeProduct.productId) ?? item.storeProduct,
+  }));
+  return { ...cart, items };
 }
 
 export async function getShipping(
@@ -67,7 +40,8 @@ export async function getShipping(
     storeId,
     city,
   );
-  if (!shipping)
+  if (!shipping) {
     throw new NotFoundError(CHECKOUT_MESSAGE.SHIPPING_METHOD_INVALID);
+  }
   return shipping;
 }
