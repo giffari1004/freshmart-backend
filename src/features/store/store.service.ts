@@ -34,6 +34,12 @@ export class StoreService {
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
+        include: {
+          storeAdmins: {
+            where: { deletedAt: null },
+            select: { id: true, name: true, email: true, avatarUrl: true },
+          },
+        },
       }),
       prisma.store.count({ where }),
     ]);
@@ -50,7 +56,15 @@ export class StoreService {
   }
 
   static async getById({ params }: getStoreByIdSchema) {
-    const store = await prisma.store.findUnique({ where: { id: params.id } });
+    const store = await prisma.store.findUnique({
+      where: { id: params.id },
+      include: {
+        storeAdmins: {
+          where: { deletedAt: null },
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
+    });
     if (!store || store.deletedAt) throw new NotFoundError("Store not found");
     return store;
   }
