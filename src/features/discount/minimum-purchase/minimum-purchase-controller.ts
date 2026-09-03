@@ -52,11 +52,12 @@ export class MinimumPurchaseDiscountController {
     const { query } = validate(MinimumDiscountValidation.GET_MINIMUM_PURCHASE, {
       query: req.query,
     });
-    const discounts = await MinimumPurchaseDiscountService.getAll({ query });
+    const {data,meta} = await MinimumPurchaseDiscountService.getAll({ query });
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Discounts retrieved successfully",
-      data: discounts,
+      data,
+      meta
     });
   }
 }

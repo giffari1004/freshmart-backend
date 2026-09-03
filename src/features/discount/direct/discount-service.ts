@@ -1,8 +1,14 @@
 import { prisma } from "../../../configs/prisma-client-config";
 import { ConflictError } from "../../../errors/ConflictError";
 import { NotFoundError } from "../../../errors/NotFoundError";
+import { createMeta } from "../../../helper/createMeta";
+import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
-import { assertProductValid, assertStoreOwnership } from "../discount-helper";
+import {
+  assertProductValid,
+  assertStoreOwnership,
+  discountWhere,
+} from "../discount-helper";
 import {
   createDiscountSchema,
   deleteDiscountSchema,
@@ -79,34 +85,25 @@ export class DiscountService {
     });
   }
   static async getAll({ query }: getDiscountsSchema) {
-    const now = new Date();
-    return prisma.discount.findMany({
-      where: {
-        deletedAt: null,
-        type: "DIRECT",
-        ...(query.storeId && {
-          storeId: query.storeId,
-        }),
-        ...(query.productId && {
-          productId: query.productId,
-        }),
-        ...(query.activeOnly && {
-          isActive: true,
-          startDate: {
-            lte: now,
-          },
-          endDate: {
-            gte: now,
-          },
-        }),
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        product: true,
-        store: true,
-      },
+    const { page, limit, storeId, productId, activeOnly } = query;
+    const { skip, take } = getPagination(page, limit);
+    const where = discountWhere({
+      type: "BUY1GET1",
+      storeId,
+      productId,
+      activeOnly,
     });
+    const [data, totalData] = await Promise.all([
+      await prisma.discount.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        include: { product: true, store: true },
+      }),
+      await prisma.discount.count({ where }),
+    ]);
+    const meta = createMeta(page,limit,totalData)
+    return {data,meta}
   }
 }

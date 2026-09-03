@@ -1,5 +1,6 @@
 import { Prisma } from "../../../generated/prisma";
 import { prisma } from "../../configs/prisma-client-config";
+import { BadRequestError } from "../../errors/BadRequestError";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { uploadToCloudinary } from "../../utils/cloudinary";
@@ -29,9 +30,13 @@ export async function findProductOrError(id: string) {
   }
 }
 export async function uploadProductImages(files: Express.Multer.File[]) {
-  return await Promise.all(
-    files.map((file) => uploadToCloudinary(file.buffer, "products")),
-  );
+  try {
+    return await Promise.all(
+      files.map((file) => uploadToCloudinary(file.buffer, "products")),
+    );
+  } catch (error) {
+    throw new BadRequestError("Failed to upload product images");
+  }
 }
 export function whereStoreProduct(
   storeId: string,
@@ -76,6 +81,9 @@ export function formatProductDetail(
   };
 }
 
-export function createImageCloudinary(imageUrls: string[]){
-    return imageUrls.map((url,index) => ({imageUrl:url,isPrimary: index === 0}))
+export function createImageCloudinary(imageUrls: string[]) {
+  return imageUrls.map((url, index) => ({
+    imageUrl: url,
+    isPrimary: index === 0,
+  }));
 }

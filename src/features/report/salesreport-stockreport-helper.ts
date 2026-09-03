@@ -10,7 +10,6 @@ export function resolveStoreFilter(user: AuthUser, storeId?: string) {
   }
   return user.storeId ?? undefined;
 }
-
 export function queryMonthReport(storeId?: string, year?: number) {
   return prisma.$queryRaw<
     { month: Date; totalSales: string; totalOrders: string }[]
@@ -27,7 +26,6 @@ export function queryMonthReport(storeId?: string, year?: number) {
     ORDER BY month ASC
   `;
 }
-
 export function queryProductReport(
   storeId?: string,
   month?: number,
@@ -60,8 +58,8 @@ export function queryProductReport(
 
 export function queryCategoryReport(
   storeId?: string,
-  year?: number,
   month?: number,
+  year?: number,
 ) {
   return prisma.$queryRaw<
     {

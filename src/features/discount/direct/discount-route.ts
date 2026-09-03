@@ -6,7 +6,7 @@ import { DiscountController } from "./discount-controller";
 export const discountRoute = Router();
 
 discountRoute.use(authMiddleware, requireRole("SUPER_ADMIN", "STORE_ADMIN"));
-
+discountRoute.get("/", DiscountController.getAll)
 discountRoute.post("/", DiscountController.create);
 discountRoute.patch("/:id", DiscountController.update);
 discountRoute.delete("/:id", DiscountController.delete);

@@ -52,22 +52,16 @@ export class BogoValidation {
   });
   static readonly GET_ALL = z.object({
     query: z.object({
+      page: z.coerce.number().int().positive().default(1),
+      limit: z.coerce.number().int().positive().max(100).default(10),
       storeId: z.string().uuid().optional(),
       productId: z.string().uuid().optional(),
       activeOnly: z.coerce.boolean().default(true),
     }),
   });
 }
-export type GetAllBogoSchema = z.infer<typeof BogoValidation.GET_ALL>
-export type CreateBogoSchema = z.infer<
-  typeof BogoValidation.CREATE
->;
-export type UpdateBogoSchema = z.infer<
-  typeof BogoValidation.UPDATE
->;
-export type DeleteBogoSchema = z.infer<
-  typeof BogoValidation.DELETE
->;
-export type CalculateBogoSchema = z.infer<
-  typeof BogoValidation.CALCULATE
->;
+export type GetAllBogoSchema = z.infer<typeof BogoValidation.GET_ALL>;
+export type CreateBogoSchema = z.infer<typeof BogoValidation.CREATE>;
+export type UpdateBogoSchema = z.infer<typeof BogoValidation.UPDATE>;
+export type DeleteBogoSchema = z.infer<typeof BogoValidation.DELETE>;
+export type CalculateBogoSchema = z.infer<typeof BogoValidation.CALCULATE>;
