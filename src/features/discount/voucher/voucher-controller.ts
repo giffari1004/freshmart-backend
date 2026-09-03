@@ -9,11 +9,11 @@ export class VoucherController {
     const { query } = validate(VoucherValidation.GET_ALL_VOUCHER, {
       query: req.query,
     });
-    const { vouchers, meta } = await VoucherService.getAllVoucher({ query });
+    const { data, meta } = await VoucherService.getAllVoucher({ query });
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Voucher retrieved successfully",
-      data: vouchers,
+      data,
       meta,
     });
   }

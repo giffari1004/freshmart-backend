@@ -31,7 +31,7 @@ export class SalesReportService {
   ) {
     const { storeId, year, month } = query;
     const resolvedStoreId = resolveStoreFilter(user, storeId);
-    const rows = await queryProductReport(resolvedStoreId, year, month);
+    const rows = await queryProductReport(resolvedStoreId, month , year);
     return rows.map((row) => ({
       month: row.month,
       productId: row.productId,
@@ -46,7 +46,7 @@ export class SalesReportService {
   ) {
     const { storeId, year, month } = query;
     const resolvedStoreId = resolveStoreFilter(user, storeId);
-    const rows = await queryCategoryReport(resolvedStoreId, year, month);
+    const rows = await queryCategoryReport(resolvedStoreId, month ,year);
     return rows.map((row) => ({
       month: row.month,
       categoryId: row.categoryId,

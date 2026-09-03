@@ -12,6 +12,7 @@ import {
 } from "./voucher-helper";
 import { getPagination } from "../../../helper/getPagination";
 import { createMeta } from "../../../helper/createMeta";
+import { voucherWhere } from "../discount-helper";
 
 export class VoucherService {
   static async getAllVoucher({ query }: getAllVourcherSchema) {
@@ -26,13 +27,8 @@ export class VoucherService {
       sortOrder,
     } = query;
     const { skip, take } = getPagination(page, limit);
-    const where: Prisma.VoucherWhereInput = {
-      ...(search && { code: { contains: search, mode: "insensitive" } }),
-      ...(usageType && { usageType }),
-      ...(valueType && { valueType }),
-      ...(isActive !== undefined && { isActive }),
-    };
-    const [vouchers, totalData] = await Promise.all([
+    const where = voucherWhere({search,usageType,valueType,isActive})
+    const [data, totalData] = await Promise.all([
       prisma.voucher.findMany({
         where,
         skip,
@@ -42,7 +38,7 @@ export class VoucherService {
       prisma.voucher.count({ where }),
     ]);
     const meta = createMeta(page, limit, totalData);
-    return { vouchers, meta };
+    return { data, meta };
   }
   static async createVoucher({ body }: createVourcherSchema) {
     await checkVoucherCodeDuplicate(body.code);

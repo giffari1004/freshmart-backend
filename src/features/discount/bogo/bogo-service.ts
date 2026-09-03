@@ -1,7 +1,9 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../../configs/prisma-client-config";
 import { NotFoundError } from "../../../errors/NotFoundError";
+import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
-import { assertProductValid, assertStoreOwnership } from "../discount-helper";
+import { assertProductValid, assertStoreOwnership, discountWhere } from "../discount-helper";
 import {
   CalculateBogoSchema,
   CreateBogoSchema,
@@ -9,6 +11,7 @@ import {
   GetAllBogoSchema,
   UpdateBogoSchema,
 } from "./bogo-validation";
+import { createMeta } from "../../../helper/createMeta";
 
 export class BogoService {
   static async create({ body }: CreateBogoSchema, user: AuthUser) {
@@ -116,17 +119,20 @@ export class BogoService {
     };
   }
   static async getAll({ query }: GetAllBogoSchema) {
-    const bogos = await prisma.discount.findMany({
-      where: {
-        type: "BUY1GET1",
-        deletedAt: null,
-        ...(query.storeId && { storeId: query.storeId }),
-        ...(query.productId && { productId: query.productId }),
-        ...(query.activeOnly && { isActive: true }),
-      },
-      include: { product: true, store: true },
-      orderBy: { createdAt: "desc" },
-    });
-    return bogos;
+    const {page,limit,storeId,productId,activeOnly} = query
+    const {skip, take} = getPagination(page,limit)
+    const where = discountWhere({type:"BUY1GET1",storeId,productId,activeOnly})
+    const [data,totalData] = await Promise.all([
+      await prisma.discount.findMany({
+        where,
+        skip,
+        take,
+        orderBy: {createdAt:"desc"},
+        include: {product:true,store:true}
+      }),
+      await prisma.discount.count({where})
+    ])
+  const meta = createMeta(page,limit,totalData)
+  return {data,meta}
   }
 }
