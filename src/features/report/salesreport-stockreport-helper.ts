@@ -38,13 +38,21 @@ export function queryProductReport(
       productName: string;
       quantitySold: string;
       productId: string;
+      productImage: string | null
     }[]
   >`SELECT
       date_trunc('month', o."createdAt") AS month,
       p."id" AS "productId",
       p."name" AS "productName",
       SUM(oi."subtotal") AS "totalSales",
-      SUM(oi."quantity") AS "quantitySold"
+      SUM(oi."quantity") AS "quantitySold",
+      (
+      SELECT pi."url"
+      FROM "product_images" pi
+      WHERE pi."productId" = p."id"
+      ORDER BY pi."createdAt" ASC 
+      LIMIT 1
+      ) AS "productImage"
     FROM "order_items" oi
     JOIN "orders" o ON o."id" = oi."orderId"
     JOIN "products" p ON p."id" = oi."productId"

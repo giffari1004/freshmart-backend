@@ -4,7 +4,7 @@ import { requireRole } from "../../../middlewares/role-middleware";
 import { MinimumPurchaseDiscountController } from "./minimum-purchase-controller";
 
 export const minimumPurchaseDiscountRoute = Router();
-
+minimumPurchaseDiscountRoute.get("/", MinimumPurchaseDiscountController.getAll);
 minimumPurchaseDiscountRoute.use(
   authMiddleware,
   requireRole("SUPER_ADMIN", "STORE_ADMIN"),
@@ -21,4 +21,3 @@ minimumPurchaseDiscountRoute.delete(
   "/:id",
   MinimumPurchaseDiscountController.delete,
 );
-minimumPurchaseDiscountRoute.get("/", requireRole("SUPER_ADMIN", "STORE_ADMIN"), MinimumPurchaseDiscountController.getAll);

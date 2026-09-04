@@ -23,7 +23,7 @@ export async function checkDuplicateEmail(email: string) {
   });
   if (duplicate)
     throw new ConflictError(
-      "Duplice email account",
+      "Duplicate email account",
     );
 }
 export function whereUser(

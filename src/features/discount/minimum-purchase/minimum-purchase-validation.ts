@@ -6,8 +6,7 @@ export class MinimumDiscountValidation {
     body: z
       .object({
         storeId: z.string().uuid("Invalid store id"),
-        productId: z.string().uuid("Invalid product id").optional(),
-        valueType: z.enum(ValueType),
+          valueType: z.enum(ValueType),
         value: z.number().positive(),
         minPurchaseAmount: z.number().positive(),
         maxDiscountAmount: z.number().positive().optional(),
