@@ -27,11 +27,28 @@ export function selectNearestStore(
   latitude: number,
   longitude: number,
 ): StoreSelectionResult {
+  validateCoordinates(latitude, longitude);
+
   const complete = getCompleteGroups(candidates, requested);
   if (!complete.length) throw storeNotFound();
+
   const stocked = complete.filter((items) => hasStock(items, requested));
   if (!stocked.length) throw stockUnavailable();
+
   return pickNearest(stocked, latitude, longitude);
+}
+
+function validateCoordinates(latitude: number, longitude: number) {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    throw new BadRequestError("Invalid address coordinates");
+  }
 }
 
 function getCompleteGroups(
@@ -45,7 +62,11 @@ function getCompleteGroups(
 
 function groupByStore(candidates: Candidate[]) {
   const groups = new Map<string, Candidate[]>();
-  for (const candidate of candidates) addToGroup(groups, candidate);
+
+  for (const candidate of candidates) {
+    addToGroup(groups, candidate);
+  }
+
   return groups;
 }
 
@@ -75,6 +96,7 @@ function hasStock(
     const candidate = candidates.find(
       (entry) => entry.productId === item.productId,
     );
+
     return Boolean(
       candidate &&
         candidate.stockQuantity - candidate.reservedStock >= item.quantity,
@@ -90,7 +112,11 @@ function pickNearest(
   const selections = groups
     .map((items) => buildSelection(items, latitude, longitude))
     .filter(isWithinRadius);
-  if (!selections.length) throw outOfRadius();
+
+  if (!selections.length) {
+    throw outOfRadius();
+  }
+
   return selections.sort(compareDistance)[0]!;
 }
 
@@ -100,13 +126,19 @@ function buildSelection(
   longitude: number,
 ): StoreSelectionResult {
   const store = items[0]!.store;
+
   const distanceKm = calculateDistanceKm(
     latitude,
     longitude,
     store.latitude,
     store.longitude,
   );
-  return { store, storeProducts: items, distanceKm };
+
+  return {
+    store,
+    storeProducts: items,
+    distanceKm,
+  };
 }
 
 function isWithinRadius(selection: StoreSelectionResult) {
@@ -116,7 +148,10 @@ function isWithinRadius(selection: StoreSelectionResult) {
   );
 }
 
-function compareDistance(left: StoreSelectionResult, right: StoreSelectionResult) {
+function compareDistance(
+  left: StoreSelectionResult,
+  right: StoreSelectionResult,
+) {
   return left.distanceKm - right.distanceKm;
 }
 

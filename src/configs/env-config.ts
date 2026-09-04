@@ -33,3 +33,6 @@ export const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || "";
 export const FACEBOOK_REDIRECT_URI =
   process.env.FACEBOOK_REDIRECT_URI ||
   "http://localhost:8001/api/v1/social-login/facebook/callback";
+
+export const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
+export const MIDTRANS_CLIENT_KEY = process.env.MIDTRANS_CLIENT_KEY || "";

@@ -71,21 +71,30 @@ export class PaymentWebhookService {
 
   private mapPaymentStatus(transactionStatus: string): WebhookStatus {
     const statuses: Record<string, WebhookStatus> = {
-      settlement: {
-        paymentStatus: "SETTLEMENT",
-        orderStatus: "WAITING_CONFIRMATION",
+      pending: {
+        paymentStatus: "PENDING",
+        orderStatus: "WAITING_PAYMENT",
         releaseStock: false,
       },
+
+      settlement: {
+        paymentStatus: "SETTLEMENT",
+        orderStatus: "PAID",
+        releaseStock: false,
+      },
+
       expire: {
         paymentStatus: "EXPIRED",
         orderStatus: "CANCELLED",
         releaseStock: true,
       },
+
       deny: {
         paymentStatus: "DENIED",
         orderStatus: "CANCELLED",
         releaseStock: true,
       },
+
       cancel: {
         paymentStatus: "CANCELLED",
         orderStatus: "CANCELLED",
@@ -101,7 +110,6 @@ export class PaymentWebhookService {
   }
 }
 
-
 function buildWebhookData(
   paymentId: string,
   orderId: string,
@@ -109,9 +117,14 @@ function buildWebhookData(
   status: WebhookStatus,
 ) {
   return {
-    paymentId, orderId, transactionId: payload.transaction_id ?? null,
-    transactionStatus: payload.transaction_status, statusCode: payload.status_code,
-    grossAmount: Number(payload.gross_amount), signatureKey: payload.signature_key,
-    payload: payload as unknown as Prisma.InputJsonValue, ...status,
+    paymentId,
+    orderId,
+    transactionId: payload.transaction_id ?? null,
+    transactionStatus: payload.transaction_status,
+    statusCode: payload.status_code,
+    grossAmount: Number(payload.gross_amount),
+    signatureKey: payload.signature_key,
+    payload: payload as unknown as Prisma.InputJsonValue,
+    ...status,
   };
 }

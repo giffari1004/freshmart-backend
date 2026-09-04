@@ -59,12 +59,6 @@ export async function recordSettlementHistory(
       notes: "Payment settled through Midtrans gateway",
     },
   });
-  await updateOrderAndHistory(
-    tx,
-    orderId,
-    "WAITING_CONFIRMATION",
-    "Status updated from validated Midtrans webhook",
-  );
 }
 
 function cancelledDate(

@@ -18,7 +18,6 @@ export const orderAdminListSchema = z.object({
     status: z.enum([
       "WAITING_PAYMENT",
       "PAID",
-      "WAITING_CONFIRMATION",
       "PROCESSED",
       "SHIPPED",
       "CONFIRMED",

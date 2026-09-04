@@ -18,7 +18,7 @@ export class AddressController {
     const { query } = validate(AddressValidation.SEARCH_CITIES, {
       query: req.query,
     });
-    const cities = await AddressService.searchCities({ query });
+    const cities = await AddressService.searchCities(query.search);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Cities retrieved successfully",

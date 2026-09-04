@@ -1,10 +1,8 @@
 import { Prisma } from "../../../../generated/prisma";
-import {
-  ProcessWebhookData
-} from "./payment.webhook.type";
+import { BadRequestError } from "../../../errors/BadRequestError";
+import { ProcessWebhookData } from "./payment.webhook.type";
 import {
   ensurePayment,
-  hasEvent,
   updatePayment,
 } from "./helper/payment.webhook.payment.helper";
 import {
@@ -17,21 +15,14 @@ import {
   releaseWebhookStock,
 } from "./helper/payment.webhook.stock.helper";
 import { createWebhookEvent } from "./helper/payment.webhook.event.helper";
-import { BadRequestError } from "../../../errors/BadRequestError";
 
 export async function processWebhookTransaction(
   tx: Prisma.TransactionClient,
   data: ProcessWebhookData,
 ) {
-  if (await hasEvent(tx, data)) {
-    return { duplicate: true };
-  }
-
   const payment = await ensurePayment(tx, data.paymentId);
 
-  if (payment.orderId !== data.orderId) {
-    throw new Error("Payment does not belong to order");
-  }
+  validatePaymentOrder(payment.orderId, data.orderId);
 
   const order = await findWebhookOrder(tx, data.orderId);
 
@@ -46,18 +37,26 @@ export async function processWebhookTransaction(
   }
 
   await applyStockEffect(tx, data, order);
-
   await updateOrderIfNeeded(tx, data, order.status);
   await createWebhookEvent(tx, data);
 
   return { duplicate: false };
 }
 
+function validatePaymentOrder(
+  paymentOrderId: string,
+  webhookOrderId: string,
+): void {
+  if (paymentOrderId !== webhookOrderId) {
+    throw new Error("Payment does not belong to order");
+  }
+}
+
 function validateGrossAmount(
   amount: Prisma.Decimal,
   grossAmount: number,
 ): void {
-  if (Number(amount) !== Number(grossAmount)) {
+  if (Number(amount) !== grossAmount) {
     throw new BadRequestError(
       "Webhook gross amount does not match payment amount",
     );
@@ -70,7 +69,12 @@ async function applyStockEffect(
   order: Awaited<ReturnType<typeof findWebhookOrder>>,
 ): Promise<void> {
   if (data.paymentStatus === "SETTLEMENT") {
-    await deductReservedStock(tx, order.id, order.storeId, order.items);
+    await deductReservedStock(
+      tx,
+      order.id,
+      order.storeId,
+      order.items,
+    );
     return;
   }
 

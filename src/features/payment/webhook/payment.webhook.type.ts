@@ -18,8 +18,10 @@ export interface PaymentWebhookResult {
   message: string;
 }
 export interface WebhookStatus {
-  paymentStatus: "SETTLEMENT" | "EXPIRED" | "DENIED" | "CANCELLED";
-  orderStatus: "WAITING_CONFIRMATION" | "CANCELLED";
+  paymentStatus: "PENDING" | "SETTLEMENT" | "EXPIRED" | "DENIED" | "CANCELLED";
+
+  orderStatus: "WAITING_PAYMENT" | "PAID" | "CANCELLED";
+
   releaseStock: boolean;
 }
 export interface ProcessWebhookData {

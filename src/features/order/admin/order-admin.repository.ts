@@ -100,9 +100,9 @@ function validateTransition(
   next: AdminOrderStatus,
 ): void {
   const valid =
-    (next === "PROCESSED" && current === "WAITING_CONFIRMATION") ||
+    (next === "PROCESSED" && current === "PAID") ||
     (next === "SHIPPED" && current === "PROCESSED") ||
-    (next === "CANCELLED" && ["PAID", "WAITING_CONFIRMATION", "PROCESSED"].includes(current));
+    (next === "CANCELLED" && ["PAID", "PROCESSED"].includes(current));
 
   if (!valid) {
     throw new BadRequestError(

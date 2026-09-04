@@ -24,8 +24,7 @@ export const orderListQuerySchema = z.object({
     .enum([
       "WAITING_PAYMENT",
       "PAID",
-      "WAITING_CONFIRMATION",
-      "PROCESSED",
+          "PROCESSED",
       "SHIPPED",
       "CONFIRMED",
       "CANCELLED",

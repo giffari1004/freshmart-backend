@@ -74,7 +74,6 @@ export interface OrderStatusHistoryResponse {
 export const ORDER_LIST_STATUS_VALUES = [
   "WAITING_PAYMENT",
   "PAID",
-  "WAITING_CONFIRMATION",
   "PROCESSED",
   "SHIPPED",
   "CONFIRMED",
