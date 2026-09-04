@@ -1,6 +1,4 @@
 import { prisma } from "../../../configs/prisma-client-config";
-import { ConflictError } from "../../../errors/ConflictError";
-import { NotFoundError } from "../../../errors/NotFoundError";
 import { createMeta } from "../../../helper/createMeta";
 import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
@@ -8,6 +6,8 @@ import {
   assertProductValid,
   assertStoreOwnership,
   discountWhere,
+  duplicateDiscount,
+  existingDiscount,
 } from "../discount-helper";
 import {
   createDiscountSchema,
@@ -20,19 +20,7 @@ export class DiscountService {
   static async create({ body }: createDiscountSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
     await assertProductValid(body.productId);
-    const existing = await prisma.discount.findFirst({
-      where: {
-        storeId: body.storeId,
-        productId: body.productId,
-        type: "DIRECT",
-        deletedAt: null,
-      },
-    });
-    if (existing) {
-      throw new ConflictError(
-        "Discount for this product and store already exists",
-      );
-    }
+    await duplicateDiscount({storeId:body.storeId,productId:body.productId,type:"DIRECT"})
     return prisma.discount.create({
       data: {
         storeId: body.storeId,
@@ -47,15 +35,7 @@ export class DiscountService {
     });
   }
   static async update({ params, body }: updateDiscountSchema, user: AuthUser) {
-    const existing = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        deletedAt: null,
-      },
-    });
-    if (!existing) {
-      throw new NotFoundError("Discount not found");
-    }
+    const existing = await existingDiscount({id:params.id,type:"DIRECT"})
     assertStoreOwnership(user, existing.storeId);
     return prisma.discount.update({
       where: {
@@ -65,15 +45,7 @@ export class DiscountService {
     });
   }
   static async delete({ params }: deleteDiscountSchema, user: AuthUser) {
-    const existing = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        deletedAt: null,
-      },
-    });
-    if (!existing) {
-      throw new NotFoundError("Discount not found");
-    }
+    const existing = await existingDiscount({id:params.id,type:"DIRECT"})
     assertStoreOwnership(user, existing.storeId);
     return prisma.discount.update({
       where: {

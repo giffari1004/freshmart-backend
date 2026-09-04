@@ -7,6 +7,7 @@ import {
   assertProductValid,
   assertStoreOwnership,
   discountWhere,
+  existingDiscount,
 } from "../discount-helper";
 import {
   createMinimumDiscountSchema,
@@ -18,15 +19,9 @@ import {
 export class MinimumPurchaseDiscountService {
   static async create({ body }: createMinimumDiscountSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
-    if (body.productId) {
-      await assertProductValid(body.productId);
-    }
     return prisma.discount.create({
       data: {
         storeId: body.storeId,
-        ...(body.productId && {
-          productId: body.productId,
-        }),
         type: "MIN_PURCHASE",
         valueType: body.valueType,
         value: body.value,
@@ -43,16 +38,10 @@ export class MinimumPurchaseDiscountService {
     { params, body }: updateMinimumDiscountSchema,
     user: AuthUser,
   ) {
-    const existing = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        type: "MIN_PURCHASE",
-        deletedAt: null,
-      },
+    const existing = await existingDiscount({
+      id: params.id,
+      type: "MIN_PURCHASE",
     });
-    if (!existing) {
-      throw new NotFoundError("Discount not found");
-    }
     assertStoreOwnership(user, existing.storeId);
     return prisma.discount.update({
       where: {
@@ -63,16 +52,10 @@ export class MinimumPurchaseDiscountService {
   }
 
   static async delete({ params }: deleteMinimumDiscountSchema, user: AuthUser) {
-    const existing = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        type: "MIN_PURCHASE",
-        deletedAt: null,
-      },
+    const existing = await existingDiscount({
+      id: params.id,
+      type: "MIN_PURCHASE",
     });
-    if (!existing) {
-      throw new NotFoundError("Discount not found");
-    }
     assertStoreOwnership(user, existing.storeId);
     return prisma.discount.update({
       where: {
@@ -98,12 +81,12 @@ export class MinimumPurchaseDiscountService {
         where,
         skip,
         take,
-        orderBy: {createdAt:"desc"},
-        include: {product:true,store:true}
+        orderBy: { createdAt: "desc" },
+        include: { product: true, store: true },
       }),
-      await prisma.discount.count({where})
+      await prisma.discount.count({ where }),
     ]);
-    const meta = createMeta(page,limit,totalData)
-    return {data,meta}
+    const meta = createMeta(page, limit, totalData);
+    return { data, meta };
   }
 }

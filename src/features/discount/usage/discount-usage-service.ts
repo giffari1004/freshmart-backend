@@ -20,7 +20,7 @@ export class DiscountUsageService {
         },
       }),
     };
-    const [usages, totalData] = await Promise.all([
+    const [data , totalData] = await Promise.all([
       prisma.discountUsage.findMany({
         where,
         skip,
@@ -31,6 +31,6 @@ export class DiscountUsageService {
       prisma.discountUsage.count({ where }),
     ]);
     const meta = createMeta(page, limit, totalData);
-    return { usages, meta };
+    return { data , meta };
   }
 }

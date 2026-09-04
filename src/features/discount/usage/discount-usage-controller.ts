@@ -10,11 +10,11 @@ export class DiscountUsageController {
       query: req.query,
     });
     const user = req.user!;
-    const { usages, meta } = await DiscountUsageService.getAllUsage({ query }, user);
+    const { data, meta } = await DiscountUsageService.getAllUsage({ query }, user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Discount usage retrieved successfully",
-      data: usages,
+      data: data,
       meta,
     });
   }

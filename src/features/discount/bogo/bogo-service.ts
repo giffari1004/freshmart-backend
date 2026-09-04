@@ -1,9 +1,7 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "../../../configs/prisma-client-config";
-import { NotFoundError } from "../../../errors/NotFoundError";
 import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
-import { assertProductValid, assertStoreOwnership, discountWhere } from "../discount-helper";
+import { assertProductValid, assertStoreOwnership, discountWhere, duplicateDiscount, existingDiscount } from "../discount-helper";
 import {
   CalculateBogoSchema,
   CreateBogoSchema,
@@ -17,6 +15,7 @@ export class BogoService {
   static async create({ body }: CreateBogoSchema, user: AuthUser) {
     assertStoreOwnership(user, body.storeId);
     await assertProductValid(body.productId);
+    await duplicateDiscount({storeId:body.storeId,productId:body.productId,type:"BUY1GET1"})
     const createBogo = await prisma.discount.create({
       data: {
         storeId: body.storeId,
@@ -32,16 +31,7 @@ export class BogoService {
     return createBogo;
   }
   static async update({ params, body }: UpdateBogoSchema, user: AuthUser) {
-    const existingBogo = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        type: "BUY1GET1",
-        deletedAt: null,
-      },
-    });
-    if (!existingBogo) {
-      throw new NotFoundError("BOGO discount not found");
-    }
+    const existingBogo = await existingDiscount({id:params.id,type:"BUY1GET1"})
     assertStoreOwnership(user, existingBogo.storeId);
     if (body.productId) {
       await assertProductValid(body.productId);
@@ -50,31 +40,12 @@ export class BogoService {
       where: {
         id: params.id,
       },
-      data: {
-        ...(body.productId && {
-          productId: body.productId,
-        }),
-        ...(body.startDate && {
-          startDate: body.startDate,
-        }),
-        ...(body.endDate && {
-          endDate: body.endDate,
-        }),
-      },
+      data: body
     });
     return updateBogo;
   }
   static async delete({ params }: DeleteBogoSchema, user: AuthUser) {
-    const existingBogo = await prisma.discount.findFirst({
-      where: {
-        id: params.id,
-        type: "BUY1GET1",
-        deletedAt: null,
-      },
-    });
-    if (!existingBogo) {
-      throw new NotFoundError("BOGO discount not found");
-    }
+    const existingBogo = await existingDiscount({id:params.id,type:"BUY1GET1"})
     assertStoreOwnership(user, existingBogo.storeId);
     const deleteBogo = await prisma.discount.update({
       where: {
@@ -86,7 +57,7 @@ export class BogoService {
     });
     return deleteBogo;
   }
-
+  // ini untuk dipakai feature 3 (said) sebagai logic bogo 
   static async calculate({ body }: CalculateBogoSchema) {
     const now = new Date();
     const bogo = await prisma.discount.findFirst({
