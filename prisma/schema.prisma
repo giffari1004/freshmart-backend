@@ -251,7 +251,7 @@ model Voucher {
   expiredAt         DateTime
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
-
+  deletedAt         DateTime?
   userVouchers UserVoucher[]
 
   @@map("vouchers")

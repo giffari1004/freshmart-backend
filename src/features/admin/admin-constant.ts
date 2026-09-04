@@ -15,6 +15,7 @@ export const ADMIN_GET_SELECT = {
   storeId: true,
   isVerified: true,
   createdAt: true,
+  avatarUrl:true
 };
 export const ADMIN_DELETE_SELECT = {
   id: true,

@@ -6,8 +6,7 @@ export class MinimumDiscountValidation {
     body: z
       .object({
         storeId: z.string().uuid("Invalid store id"),
-        productId: z.string().uuid("Invalid product id").optional(),
-        valueType: z.enum(ValueType),
+          valueType: z.enum(ValueType),
         value: z.number().positive(),
         minPurchaseAmount: z.number().positive(),
         maxDiscountAmount: z.number().positive().optional(),
@@ -68,13 +67,17 @@ export class MinimumDiscountValidation {
   });
   static readonly GET_MINIMUM_PURCHASE = z.object({
     query: z.object({
+      page: z.coerce.number().int().positive().default(1),
+      limit: z.coerce.number().int().positive().max(100).default(10),
       storeId: z.string().uuid("Invalid store id").optional(),
       productId: z.string().uuid("Invalid product id").optional(),
       activeOnly: z.coerce.boolean().default(true),
     }),
   });
 }
-export type getMinimumPurchaseSchema = z.infer<typeof MinimumDiscountValidation.GET_MINIMUM_PURCHASE>
+export type getMinimumPurchaseSchema = z.infer<
+  typeof MinimumDiscountValidation.GET_MINIMUM_PURCHASE
+>;
 export type createMinimumDiscountSchema = z.infer<
   typeof MinimumDiscountValidation.CREATE
 >;

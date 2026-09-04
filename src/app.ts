@@ -19,7 +19,6 @@ import { storefrontRoute } from "./features/storefront/storefront.route";
 import { storeRoute } from "./features/store/store.route";
 import { authRoute } from "./features/auth/auth.route";
 import { discountRoute } from "./features/discount/direct/discount-route";
-import { discountPublicRoute } from "./features/discount/direct/discount-public-route";
 import { minimumPurchaseDiscountRoute } from "./features/discount/minimum-purchase/minimum-purchase-route";
 import { bogoRoute } from "./features/discount/bogo/bogo-route";
 import { bogoPublicRoute } from "./features/discount/bogo/bogo-public-route";
@@ -33,6 +32,8 @@ import { salesReportRoute } from "./features/report/sales-report/sales-report-ro
 import { stockReportRoute } from "./features/report/stock-report/stock-report-route";
 import orderAdminRouter from "./features/order/admin/order-admin.route";
 import { inventoryRoute } from "./features/inventory/inventory-route";
+import { voucherPublicRoute } from "./features/discount/voucher/vourcher-public-route";
+import { voucherRoute } from "./features/discount/voucher/voucher-route";
 
 const app = express();
 app.use(helmet());
@@ -71,23 +72,23 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/storefront", storefrontRoute);
 app.use("/api/v1/stores", storeRoute);
 app.use("/api/v1/auth", authRoute);
-app.use("/api/v1/admin/discounts", discountRoute);
-app.use("/api/v1/discounts", discountPublicRoute);
-app.use("/api/v1/admin/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
+app.use("/api/v1/admin/orders", orderAdminRouter);
 app.use("/api/v1/inventory", inventoryRoute);
-app.use('/api/v1/admin/bogo', bogoRoute);
-app.use('/api/v1/bogo', bogoPublicRoute);
 app.use("/api/v1/addresses", addressRoute);
 app.use("/api/v1/profile", profileRoute);
 app.use("/api/v1/authorization", authorizationRoute);
 app.use("/api/v1/social-login", socialLoginRoute);
-app.use("/api/discounts/calculate", discountCalculateRoute);
-app.use("/api/v1/discounts/usage", discountUsageRoute);
 app.use("/api/v1/reports/sales", salesReportRoute);
 app.use("/api/v1/reports/stock", stockReportRoute);
-// ===============================
-// 404 Handler
-// ===============================
+app.use("/api/v1/admin/vouchers", voucherRoute);
+app.use("/api/v1/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
+app.use("/api/v1/discounts/calculate", discountCalculateRoute);
+app.use("/api/v1/discounts/usage", discountUsageRoute);
+app.use('/api/v1/admin/bogo', bogoRoute);
+app.use('/api/v1/bogo', bogoPublicRoute);
+app.use("/api/v1/vouchers", voucherPublicRoute); 
+app.use("/api/v1/admin/discounts", discountRoute);
+
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));
 });

@@ -10,7 +10,6 @@ export function resolveStoreFilter(user: AuthUser, storeId?: string) {
   }
   return user.storeId ?? undefined;
 }
-
 export function queryMonthReport(storeId?: string, year?: number) {
   return prisma.$queryRaw<
     { month: Date; totalSales: string; totalOrders: string }[]
@@ -27,7 +26,6 @@ export function queryMonthReport(storeId?: string, year?: number) {
     ORDER BY month ASC
   `;
 }
-
 export function queryProductReport(
   storeId?: string,
   month?: number,
@@ -40,13 +38,21 @@ export function queryProductReport(
       productName: string;
       quantitySold: string;
       productId: string;
+      productImage: string | null
     }[]
   >`SELECT
       date_trunc('month', o."createdAt") AS month,
       p."id" AS "productId",
       p."name" AS "productName",
       SUM(oi."subtotal") AS "totalSales",
-      SUM(oi."quantity") AS "quantitySold"
+      SUM(oi."quantity") AS "quantitySold",
+      (
+      SELECT pi."url"
+      FROM "product_images" pi
+      WHERE pi."productId" = p."id"
+      ORDER BY pi."createdAt" ASC 
+      LIMIT 1
+      ) AS "productImage"
     FROM "order_items" oi
     JOIN "orders" o ON o."id" = oi."orderId"
     JOIN "products" p ON p."id" = oi."productId"
@@ -60,8 +66,8 @@ export function queryProductReport(
 
 export function queryCategoryReport(
   storeId?: string,
-  year?: number,
   month?: number,
+  year?: number,
 ) {
   return prisma.$queryRaw<
     {
@@ -100,6 +106,7 @@ export function queryMonthlyStockSummary(
       stockIn: string;
       stockOut: string;
       afterStock: string;
+      productImage: string | null
     }[]
   >`
   SELECT 
@@ -108,7 +115,14 @@ export function queryMonthlyStockSummary(
   p."name" AS "productName",
   SUM(CASE WHEN sj."type" = 'IN' THEN sj."quantity" ELSE 0 END) AS "stockIn",
   SUM(CASE WHEN sj."type" = 'OUT' THEN sj."quantity" ELSE 0 END) AS "stockOut",
-  MAX(sj."afterStock") AS  "afterStock"
+  MAX(sj."afterStock") AS  "afterStock",
+  (
+  SELECT pi."url"
+  FROM "product_images" pi
+  WHERE pi."productId" = p."id"
+  ORDER BY pi."createdAt" ASC
+  LIMIT 1
+  ) AS "productImage"
   FROM "stock_journals" sj
   JOIN "store_products" sp ON sp."id" = sj."storeProductId"
   JOIN "products" p ON p."id" = sp."productId"
@@ -135,6 +149,7 @@ export function queryStockDetail(
       quantity: number;
       beforeStock: number;
       afterStock: number;
+      productImage: string | null
       notes: string | null;
     }[]
   >`
@@ -146,7 +161,14 @@ export function queryStockDetail(
       sj."beforeStock",
       sj."afterStock",
       sj."notes",
-      p."name" AS "productName"
+      p."name" AS "productName",
+      (
+      SELECT pi."url"
+      FROM "product_images" pi
+      WHERE pi."productId" = p."id"
+      ORDER BY pi."createdAt" ASC
+      LIMIT 1
+      ) AS "productImage"
       FROM "stock_journals" sj
       JOIN "store_products" sp ON sp."id" = sj."storeProductId"
       JOIN "products" p ON p."id" = sp."productId"
