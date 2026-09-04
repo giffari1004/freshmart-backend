@@ -80,7 +80,7 @@ app.use("/api/v1/social-login", socialLoginRoute);
 app.use("/api/v1/reports/sales", salesReportRoute);
 app.use("/api/v1/reports/stock", stockReportRoute);
 app.use("/api/v1/admin/vouchers", voucherRoute);
-app.use("/api/v1/admin/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
+app.use("/api/v1/discounts/minimum-purchase", minimumPurchaseDiscountRoute);
 app.use("/api/v1/discounts/calculate", discountCalculateRoute);
 app.use("/api/v1/discounts/usage", discountUsageRoute);
 app.use('/api/v1/admin/bogo', bogoRoute);
