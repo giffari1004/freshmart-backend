@@ -4,13 +4,9 @@ import { authMiddleware } from "../../middlewares/auth-middleware";
 
 export const addressRoute = Router();
 
-// Semua route di sini wajib login — resource milik user sendiri (bukan
-// admin-only), jadi cukup authMiddleware tanpa requireRole.
 addressRoute.use(authMiddleware);
-
-// Taruh SEBELUM "/:id" supaya "cities" tidak ke-capture jadi param :id.
 addressRoute.get("/cities", AddressController.searchCities);
-
+addressRoute.get("/geocode", AddressController.geocodeCity);
 addressRoute.get("/", AddressController.getAll);
 addressRoute.get("/:id", AddressController.getById);
 addressRoute.post("/", AddressController.create);

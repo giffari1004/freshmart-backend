@@ -1,5 +1,4 @@
 import { prisma } from "../../configs/prisma-client-config";
-import { geocodeAddress } from "../../integrations/opencage-client";
 import {
   getShippingOptions as fetchShippingOptions,
   searchCities,
@@ -13,8 +12,9 @@ import type {
   deleteAddressSchema,
   setPrimaryAddressSchema,
   getShippingOptionsSchema,
-  searchCitiesSchema,
+  geocodeCitySchema,
 } from "./address.validation";
+import { geocodeAddress } from "../../integrations/opencage-client";
 
 export class AddressService {
   static async getAll(userId: string) {
@@ -39,19 +39,10 @@ export class AddressService {
       district,
       fullAddress,
       isPrimary,
+      latitude,
+      longitude,
     } = body;
 
-    // Geocoding OpenCage (lat/long) dan rajaOngkirCityId itu DUA HAL
-    // BERBEDA yang kebetulan sama-sama soal "kota":
-    // - lat/long dari OpenCage -> buat hitung radius jangkauan toko
-    // - rajaOngkirCityId -> buat parameter `destination` ke RajaOngkir
-    // Dua-duanya wajib disimpan, tidak saling menggantikan.
-    const { latitude, longitude } = await geocodeAddress(
-      `${fullAddress}, ${district}, ${city}, ${province}`,
-    );
-
-    // Alamat pertama user otomatis jadi primary, supaya checkout tidak
-    // pernah nemu user yang punya alamat tapi tidak ada satupun primary.
     const existingCount = await prisma.userAddress.count({
       where: { userId, deletedAt: null },
     });
@@ -83,25 +74,11 @@ export class AddressService {
   }
 
   static async update(userId: string, { params, body }: updateAddressSchema) {
-    const address = await AddressService.findOwned(userId, params.id);
-
-    const needsRegeocode =
-      body.fullAddress !== undefined ||
-      body.district !== undefined ||
-      body.city !== undefined ||
-      body.province !== undefined;
-
-    let coordinates: { latitude: number; longitude: number } | undefined;
-    if (needsRegeocode) {
-      const merged = { ...address, ...body };
-      coordinates = await geocodeAddress(
-        `${merged.fullAddress}, ${merged.district}, ${merged.city}, ${merged.province}`,
-      );
-    }
+    await AddressService.findOwned(userId, params.id);
 
     return prisma.userAddress.update({
       where: { id: params.id },
-      data: { ...body, ...coordinates },
+      data: body,
     });
   }
 
@@ -123,9 +100,6 @@ export class AddressService {
   static async setPrimary(userId: string, { params }: setPrimaryAddressSchema) {
     await AddressService.findOwned(userId, params.id);
 
-    // Transaction supaya "unset semua primary" + "set 1 jadi primary"
-    // atomik — tidak ada window waktu di mana user punya 0 atau 2 alamat
-    // primary sekaligus.
     return prisma.$transaction(async (tx) => {
       await tx.userAddress.updateMany({
         where: { userId, deletedAt: null },
@@ -139,15 +113,6 @@ export class AddressService {
     });
   }
 
-  /**
-   * Hitung opsi & biaya pengiriman dari toko ke alamat ini lewat
-   * RajaOngkir, lalu simpan tiap opsi sebagai baris BARU di
-   * `ShippingMethod` — bukan di-upsert ke baris lama.
-   *
-   * Ini disengaja: tarif RajaOngkir bisa berubah kapan saja, dan `Order`
-   * perlu merujuk ke angka PERSIS yang ditampilkan ke user saat checkout,
-   * bukan baris yang nilainya mungkin sudah berubah belakangan.
-   */
   static async getShippingOptions(
     userId: string,
     { params, body }: getShippingOptionsSchema,
@@ -160,11 +125,6 @@ export class AddressService {
       throw new NotFoundError("Store not found");
     }
 
-    // DEPENDENSI SCHEMA: `store.rajaOngkirCityId` dan
-    // `address.rajaOngkirCityId` belum ada di schema saat ini — baris
-    // ini akan gagal type-check sampai kolomnya ditambahkan di kedua
-    // model (Store & UserAddress). Setelah itu tidak ada lagi yang perlu
-    // diubah di sini.
     const options = await fetchShippingOptions(
       store.rajaOngkirCityId,
       address.rajaOngkirCityId,
@@ -192,11 +152,11 @@ export class AddressService {
     );
   }
 
-  /**
-   * Dipakai frontend untuk autocomplete kota saat mengisi form alamat —
-   * hasilnya dipakai untuk isi `city` (nama) sekaligus `rajaOngkirCityId`
-   * (ID) di form, bukan diketik bebas.
-   */
+  static async geocodeCity(query: { query: geocodeCitySchema["query"] }) {
+    const { latitude, longitude } = await geocodeAddress(query.query.address);
+    return { latitude, longitude };
+  }
+
   static async searchCities(query: string) {
     const destinations = await searchCities(query);
     return destinations.map((d) => ({
@@ -221,3 +181,4 @@ export class AddressService {
     return address;
   }
 }
+
