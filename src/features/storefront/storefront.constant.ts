@@ -1,0 +1,1 @@
+export const DEFAULT_PROMOTION_LIMIT = 10;

@@ -5,9 +5,10 @@
   "main": "dist/app.js",
   "type": "commonjs",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^6.19.3",
+    "axios": "^1.19.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
@@ -28,6 +30,7 @@
     "midtrans-client": "^1.4.3",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
+    "ngrok": "^5.0.0-beta.2",
     "node-cron": "^4.6.0",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
@@ -39,10 +42,12 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/midtrans-client": "^1.4.0",
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.2",
     "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^8.0.1",
     "nodemon": "^3.1.14",
     "prisma": "^6.19.3",
     "ts-node": "^10.9.2",

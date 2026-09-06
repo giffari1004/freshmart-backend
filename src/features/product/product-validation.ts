@@ -32,7 +32,7 @@ export class ProductValidation {
       categoryId: z.string().uuid("Invalid category id").optional(),
     }),
   });
-  static readonly GET_ALL_PRODUCT = z.object({
+  static readonly GET_ALL_ADMIN_PRODUCT = z.object({
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
@@ -50,7 +50,7 @@ export class ProductValidation {
       id: z.string().uuid("Invalid product id"),
     }),
   });
-  static readonly GET_CATALOG = z.object({
+  static readonly GET_ALL_CUSTOMER_PRODUCT = z.object({
     query: z.object({
       storeId: z.string().uuid("Invalid store id"),
       page: z.coerce.number().int().positive().default(1),
@@ -75,13 +75,13 @@ export type createProductSchema = z.infer<
 export type deleteProductSchema = z.infer<
   typeof ProductValidation.DELETE_PRODUCT
 >;
-export type getAllProductSchema = z.infer<
-  typeof ProductValidation.GET_ALL_PRODUCT
+export type getAllAdminProductSchema = z.infer<
+  typeof ProductValidation.GET_ALL_ADMIN_PRODUCT
 >;
 export type updateProductSchema = z.infer<
   typeof ProductValidation.UPDATE_PRODUCT
 >;
-export type getCatalogSchema = z.infer<typeof ProductValidation.GET_CATALOG>;
+export type getAllCustomerProductSchema = z.infer<typeof ProductValidation.GET_ALL_CUSTOMER_PRODUCT>;
 export type getProductDetailSchema = z.infer<
   typeof ProductValidation.GET_PRODUCT_DETAIL
 >;

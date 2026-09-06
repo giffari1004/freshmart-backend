@@ -1,23 +1,10 @@
+import { Prisma, StockJournalType } from "../../../generated/prisma";
 import { prisma } from "../../configs/prisma-client-config";
 import { ConflictError } from "../../errors/ConflictError";
 import { Forbidden } from "../../errors/Forbidden";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { AuthUser } from "../../middlewares/auth-middleware";
 
-export function getPagination(page: number, limit: number) {
-  return {
-    skip: (page - 1) * limit,
-    take: limit,
-  };
-}
-export function createMeta(page: number, limit: number, totalData: number) {
-  return {
-    page,
-    limit,
-    totalData,
-    totalPages: Math.ceil(totalData / limit),
-  };
-}
 export async function findInventoryOrError(id: string) {
   const existingInventory = await prisma.storeProduct.findUnique({
     where: {
@@ -86,4 +73,27 @@ export function accessStoreForAdmin(user: AuthUser, storeId: string) {
   if (user.role === "SUPER_ADMIN") return;
   if (user.storeId !== storeId)
     throw new Forbidden("Access denied you not admin in this store");
+}
+export function whereInventory(
+  search?: string,
+  storeId?: string,
+): Prisma.StoreProductWhereInput {
+  return {
+    deletedAt: null,
+    ...(search && {
+      product: {
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    }),
+    ...(storeId && { storeId }),
+  };
+}
+export function whereStockJournal(id:string,type?:StockJournalType): Prisma.StockJournalWhereInput {
+  return {
+    storeProductId: id,
+    ...(type && { type }),
+  };
 }

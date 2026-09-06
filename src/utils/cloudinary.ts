@@ -12,4 +12,4 @@ export const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<stri
     });
     stream.end(buffer);
   });
-};
+}; 

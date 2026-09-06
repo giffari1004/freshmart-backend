@@ -1,15 +1,23 @@
 import { Router } from "express";
-import { CheckoutController } from "../controller/checkout.controller";
 import { authMiddleware } from "../../../middlewares/auth-middleware";
+import { validateBody } from "../../../validate/validation.middleware";
+import { CheckoutController } from "../controller/checkout.controller";
+import { checkoutPreviewSchema } from "../validations/checkout.validation";
 
-export const checkoutrouter = Router();
-
+export const checkoutRouter = Router();
 const controller = new CheckoutController();
 
-checkoutrouter.get(
-  "/preview",
+checkoutRouter.get(
+  "/shipping-options",
   authMiddleware,
-  controller.getCheckoutPreview.bind(controller),
+  controller.getShippingOptions,
 );
 
-export default checkoutrouter;
+checkoutRouter.post(
+  "/preview",
+  authMiddleware,
+  validateBody(checkoutPreviewSchema),
+  controller.getCheckoutPreview,
+);
+
+export default checkoutRouter;

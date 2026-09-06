@@ -21,8 +21,7 @@ export class AdminValidation {
     body: z.object({
       name: z.string().min(1, "Name is required"),
       email: z.string().email("Invalid email format"),
-      password: z.string().min(6, "Password must be at least 6 characters"),
-      storeId: z.string().uuid(" Invalid input store id"),
+      password: z.string().min(8, "Password must be at least 8 characters"),
     }),
   });
   static readonly UPDATE_STORE_ADMIN = z.object({
@@ -31,7 +30,6 @@ export class AdminValidation {
     }),
     body: z.object({
       name: z.string().min(1).optional(),
-      storeId: z.string().uuid().optional(),
     }),
   });
   static readonly DELETE_STORE_ADMIN = z.object({
