@@ -5,9 +5,10 @@
   "main": "dist/app.js",
   "type": "commonjs",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
