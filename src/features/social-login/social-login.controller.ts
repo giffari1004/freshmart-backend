@@ -3,17 +3,8 @@ import { validate } from "../../validate/validate";
 import { SocialLoginValidation } from "./social-login.validation";
 import { SocialLoginService } from "./social-login.service";
 import { FRONTEND_URL } from "../../configs/env-config";
+import { error } from "console";
 
-/**
- * Controller ini SENGAJA menangani error-nya sendiri (try/catch lokal),
- * BEDA dari pola controller lain yang membiarkan error bubble ke
- * ErrorMiddleware global. Alasannya: endpoint ini bagian dari alur
- * redirect penuh di browser (user mid-navigation dari Google/Facebook),
- * bukan dipanggil sebagai API call biasa oleh frontend JS — jadi kalau
- * gagal, responsnya harus tetap berupa REDIRECT ke halaman login
- * frontend (dengan pesan error di query param), bukan JSON mentah yang
- * bakal tampil sebagai halaman kosong/rusak di browser user.
- */
 export class SocialLoginController {
   static redirectToGoogle(_req: Request, res: Response) {
     res.redirect(SocialLoginService.getGoogleRedirectUrl());
@@ -33,6 +24,7 @@ export class SocialLoginController {
       });
       return res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
     } catch {
+      console.error("Google OAuth callback failed:", error);
       return res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
     }
   }
@@ -55,6 +47,7 @@ export class SocialLoginController {
       });
       return res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
     } catch {
+      console.error("Facebook OAuth callback failed:", error);
       return res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
     }
   }
