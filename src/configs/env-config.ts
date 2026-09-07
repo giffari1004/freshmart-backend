@@ -6,7 +6,7 @@ export const JWT_SECRET = process.env.JWT_SECRET || "secret";
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 export const WHITE_LIST = [
   "http://localhost:3000",
-  "https://freshmart-frontend-six.vercel.app/",
+  "https://freshmart-frontend-six.vercel.app",
 ];
 export const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
