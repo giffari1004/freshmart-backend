@@ -22,10 +22,10 @@ export async function checkDuplicateProduct(name: string, excludeId?: string) {
   if (existingName) throw new ConflictError("Product name already exists");
 }
 export async function findProductOrError(id: string) {
-  const existing = await prisma.product.findUnique({
-    where: { id },
+  const existing = await prisma.product.findFirst({
+    where: { id, deletedAt: null },
   });
-  if (!existing || existing.deletedAt) {
+  if (!existing) {
     throw new NotFoundError("Product not found");
   }
 }
@@ -86,4 +86,21 @@ export function createImageCloudinary(imageUrls: string[]) {
     imageUrl: url,
     isPrimary: index === 0,
   }));
+}
+
+export function activeDiscountInclude(now: Date) {
+  return {
+    where: {
+      deletedAt: null,
+      isActive: true,
+      startDate: { lte: now },
+      endDate: { gte: now },
+      type: { in: ["DIRECT", "BUY1GET1"] as const },
+    },
+    select: {
+      type: true,
+      valueType: true,
+      value: true,
+    },
+  };
 }

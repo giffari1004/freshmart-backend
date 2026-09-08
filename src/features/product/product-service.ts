@@ -3,7 +3,8 @@ import { NotFoundError } from "../../errors/NotFoundError";
 import { createMeta } from "../../helper/createMeta";
 import { getPagination } from "../../helper/getPagination";
 import { findCategoryOrError } from "../category/category-helper";
-import { PRODUCT_INCLUDE } from "./product-constant";
+import { getProductInclude } from "./product-constant";
+import slugify = require("slugify");
 import {
   checkDuplicateProduct,
   formatProductDetail,
@@ -57,6 +58,7 @@ export class ProductService {
     const createProductAcc = await prisma.product.create({
       data: {
         name: body.name,
+        slug: slugify(body.name, { lower: true, strict: true }),
         description: body.description,
         basePrice: body.basePrice,
         weight: body.weight,
@@ -76,6 +78,9 @@ export class ProductService {
       where: { id: params.id },
       data: {
         name: body.name,
+        slug: body.name
+          ? slugify(body.name, { lower: true, strict: true })
+          : undefined,
         description: body.description,
         basePrice: body.basePrice,
         weight: body.weight,
@@ -108,11 +113,11 @@ export class ProductService {
             [sortBy]: sortOrder,
           },
         },
-        include: PRODUCT_INCLUDE
+        include: getProductInclude(),
       }),
       prisma.storeProduct.count({ where }),
     ]);
-    const meta = createMeta(page,limit, totalData);
+    const meta = createMeta(page, limit, totalData);
     return {
       data,
       meta,
@@ -122,9 +127,9 @@ export class ProductService {
     const item = await prisma.storeProduct.findFirst({
       where: {
         storeId: query.storeId,
-        productId: params.id,
         deletedAt: null,
         product: {
+          slug: params.slug,
           deletedAt: null,
         },
       },

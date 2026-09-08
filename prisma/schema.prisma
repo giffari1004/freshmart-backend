@@ -102,6 +102,7 @@ model Store {
   discounts       Discount[]
   orders          Order[]
   shippingMethods ShippingMethod[]
+  vouchers Voucher[]
 
   @@map("stores")
 }
@@ -139,6 +140,7 @@ model ProductCategory {
 
 model Product {
   id          String          @id @default(uuid())
+  slug String @unique
   categoryId  String
   category    ProductCategory @relation(fields: [categoryId], references: [id])
   name        String          @unique
@@ -230,7 +232,6 @@ model Discount {
   updatedAt         DateTime     @updatedAt
   deletedAt         DateTime?
 
-  vouchers Voucher[]
   usages   DiscountUsage[]
 
   @@map("discounts")
@@ -238,9 +239,9 @@ model Discount {
 
 model Voucher {
   id                String           @id @default(uuid())
-  discountId        String?
-  discount          Discount?        @relation(fields: [discountId], references: [id])
-  code              String           @unique
+  storeId           String
+  store             Store            @relation(fields: [storeId], references: [id])
+  code              String           
   usageType         VoucherUsageType
   valueType         ValueType
   value             Decimal          @db.Decimal(12, 2)
@@ -253,8 +254,8 @@ model Voucher {
   createdAt         DateTime         @default(now())
   deletedAt         DateTime?
   userVouchers UserVoucher[]
-
   @@map("vouchers")
+  @@unique([storeId,code])
 }
 
 model UserVoucher {

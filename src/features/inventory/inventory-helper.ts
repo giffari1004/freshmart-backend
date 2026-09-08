@@ -6,7 +6,7 @@ import { NotFoundError } from "../../errors/NotFoundError";
 import { AuthUser } from "../../middlewares/auth-middleware";
 
 export async function findInventoryOrError(id: string) {
-  const existingInventory = await prisma.storeProduct.findUnique({
+  const existingInventory = await prisma.storeProduct.findFirst({
     where: {
       id,
       deletedAt: null,
@@ -75,11 +75,14 @@ export function accessStoreForAdmin(user: AuthUser, storeId: string) {
     throw new Forbidden("Access denied you not admin in this store");
 }
 export function whereInventory(
+  user:AuthUser,
   search?: string,
   storeId?: string,
 ): Prisma.StoreProductWhereInput {
   return {
     deletedAt: null,
+    store: {deletedAt:null},
+    ...(user.role === "STORE_ADMIN" ? {storeId:user.storeId!} : storeId ? {storeId} : {}),
     ...(search && {
       product: {
         name: {
@@ -88,7 +91,6 @@ export function whereInventory(
         },
       },
     }),
-    ...(storeId && { storeId }),
   };
 }
 export function whereStockJournal(id:string,type?:StockJournalType): Prisma.StockJournalWhereInput {

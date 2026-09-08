@@ -60,8 +60,6 @@ app.get("/", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-app.use("/api/v1/admin/orders", orderAdminRouter);
-app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/admin/products", productRoute);
 app.use("/api/v1/products", customerProductRoute);
@@ -86,8 +84,10 @@ app.use("/api/v1/discounts/calculate", discountCalculateRoute);
 app.use("/api/v1/discounts/usage", discountUsageRoute);
 app.use('/api/v1/admin/bogo', bogoRoute);
 app.use('/api/v1/bogo', bogoPublicRoute);
-app.use("/api/v1/vouchers", voucherPublicRoute); 
+app.use("/api/v1/vouchers", voucherPublicRoute);
 app.use("/api/v1/admin/discounts", discountRoute);
+app.use("/api/v1/admin", adminRouter);
+
 
 app.use((_req, _res, next) => {
   next(new NotFoundError("Endpoint not found"));

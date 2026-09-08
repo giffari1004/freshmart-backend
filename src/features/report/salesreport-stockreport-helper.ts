@@ -38,7 +38,7 @@ export function queryProductReport(
       productName: string;
       quantitySold: string;
       productId: string;
-      productImage: string | null
+      productImage: string | null;
     }[]
   >`SELECT
       date_trunc('month', o."createdAt") AS month,
@@ -46,11 +46,11 @@ export function queryProductReport(
       p."name" AS "productName",
       SUM(oi."subtotal") AS "totalSales",
       SUM(oi."quantity") AS "quantitySold",
-      (
-      SELECT pi."url"
+       (
+      SELECT pi."imageUrl"
       FROM "product_images" pi
       WHERE pi."productId" = p."id"
-      ORDER BY pi."createdAt" ASC 
+      ORDER BY pi."createdAt" ASC
       LIMIT 1
       ) AS "productImage"
     FROM "order_items" oi
@@ -93,6 +93,76 @@ export function queryCategoryReport(
     ORDER BY month ASC, "totalSales" DESC`;
 }
 
+export function queryStockDetail(
+  storeId?: string,
+  year?: number,
+  month?: number,
+  productId?: string,
+  skip?: number,
+  take?: number,
+) {
+  return prisma.$queryRaw<
+    {
+      id: string;
+      productName: string;
+      createdAt: Date;
+      type: string;
+      quantity: number;
+      beforeStock: number;
+      afterStock: number;
+      productImage: string | null;
+      notes: string | null;
+    }[]
+  >`
+    SELECT
+      sj."id",
+      sj."createdAt",
+      sj."type",
+      sj."quantity",
+      sj."beforeStock",
+      sj."afterStock",
+      sj."notes",
+      p."name" AS "productName",
+      (
+        SELECT pi."imageUrl"
+        FROM "product_images" pi
+        WHERE pi."productId" = p."id"
+        ORDER BY pi."createdAt" ASC
+        LIMIT 1
+      ) AS "productImage"
+    FROM "stock_journals" sj
+    JOIN "store_products" sp
+      ON sp."id" = sj."storeProductId"
+    JOIN "products" p
+      ON p."id" = sp."productId"
+    WHERE EXTRACT(YEAR FROM sj."createdAt") = ${year}
+      AND EXTRACT(MONTH FROM sj."createdAt") = ${month}
+      ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
+      ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
+    ORDER BY sj."createdAt" DESC
+    LIMIT ${take}
+    OFFSET ${skip}
+  `;
+}
+
+export function queryStockDetailCount(
+  storeId?: string,
+  year?: number,
+  month?: number,
+  productId?: string,
+) {
+  return prisma.$queryRaw<{ count: string }[]>`
+    SELECT COUNT(*) as count
+    FROM "stock_journals" sj
+    JOIN "store_products" sp ON sp."id" = sj."storeProductId"
+    JOIN "products" p ON p."id" = sp."productId"
+    WHERE EXTRACT(YEAR FROM sj."createdAt") = ${year}
+    AND EXTRACT(MONTH FROM sj."createdAt") = ${month}
+    ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
+    ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
+  `;
+}
+
 export function queryMonthlyStockSummary(
   storeId?: string,
   year?: number,
@@ -106,75 +176,48 @@ export function queryMonthlyStockSummary(
       stockIn: string;
       stockOut: string;
       afterStock: string;
-      productImage: string | null
+      productImage: string | null;
     }[]
   >`
-  SELECT 
-  date_trunc('month',sj."createdAt") AS month,
-  p."id" AS "productId",
-  p."name" AS "productName",
-  SUM(CASE WHEN sj."type" = 'IN' THEN sj."quantity" ELSE 0 END) AS "stockIn",
-  SUM(CASE WHEN sj."type" = 'OUT' THEN sj."quantity" ELSE 0 END) AS "stockOut",
-  MAX(sj."afterStock") AS  "afterStock",
-  (
-  SELECT pi."url"
-  FROM "product_images" pi
-  WHERE pi."productId" = p."id"
-  ORDER BY pi."createdAt" ASC
-  LIMIT 1
-  ) AS "productImage"
-  FROM "stock_journals" sj
-  JOIN "store_products" sp ON sp."id" = sj."storeProductId"
-  JOIN "products" p ON p."id" = sp."productId"
-  WHERE 1=1
-  ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
-  ${year ? Prisma.sql`AND EXTRACT(YEAR FROM sj."createdAt")= ${year}` : Prisma.empty}
-  ${month ? Prisma.sql`AND EXTRACT(MONTH FROM sj."createdAt") = ${month}` : Prisma.empty}
-  GROUP BY month , p."id" , p."name"
-  ORDER BY month ASC , p."name" ASC`;
-}
-
-export function queryStockDetail(
-  storeId?: string,
-  year?: number,
-  month?: number,
-  productId?: string,
-) {
-  return prisma.$queryRaw<
-    {
-      id: string;
-      productName: string;
-      createdAt: Date;
-      type: string;
-      quantity: number;
-      beforeStock: number;
-      afterStock: number;
-      productImage: string | null
-      notes: string | null;
-    }[]
-  >`
-  SELECT
-   sj."id",
-      sj."createdAt",
-      sj."type",
-      sj."quantity",
-      sj."beforeStock",
-      sj."afterStock",
-      sj."notes",
+    SELECT
+      date_trunc('month', sj."createdAt") AS month,
+      p."id" AS "productId",
       p."name" AS "productName",
+      SUM(
+        CASE
+          WHEN sj."type" = 'IN' THEN sj."quantity"
+          ELSE 0
+        END
+      ) AS "stockIn",
+      SUM(
+        CASE
+          WHEN sj."type" = 'OUT' THEN sj."quantity"
+          ELSE 0
+        END
+      ) AS "stockOut",
+      MAX(sj."afterStock") AS "afterStock",
       (
-      SELECT pi."url"
-      FROM "product_images" pi
-      WHERE pi."productId" = p."id"
-      ORDER BY pi."createdAt" ASC
-      LIMIT 1
+        SELECT pi."imageUrl"
+        FROM "product_images" pi
+        WHERE pi."productId" = p."id"
+        ORDER BY pi."createdAt" ASC
+        LIMIT 1
       ) AS "productImage"
-      FROM "stock_journals" sj
-      JOIN "store_products" sp ON sp."id" = sj."storeProductId"
-      JOIN "products" p ON p."id" = sp."productId"
-      WHERE EXTRACT(YEAR FROM sj."createdAt") = ${year}
-      AND EXTRACT(MONTH FROM sj."createdAt") = ${month}
+    FROM "stock_journals" sj
+    JOIN "store_products" sp
+      ON sp."id" = sj."storeProductId"
+    JOIN "products" p
+      ON p."id" = sp."productId"
+    WHERE 1 = 1
       ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
-      ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
-      ORDER BY sj."createdAt" DESC`;
+      ${year ? Prisma.sql`AND EXTRACT(YEAR FROM sj."createdAt") = ${year}` : Prisma.empty}
+      ${month ? Prisma.sql`AND EXTRACT(MONTH FROM sj."createdAt") = ${month}` : Prisma.empty}
+    GROUP BY
+      month,
+      p."id",
+      p."name"
+    ORDER BY
+      month ASC,
+      p."name" ASC
+  `;
 }

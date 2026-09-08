@@ -5,7 +5,7 @@ export class MinimumDiscountValidation {
   static readonly CREATE = z.object({
     body: z
       .object({
-        storeId: z.string().uuid("Invalid store id"),
+        storeId: z.string().uuid("Invalid store id").optional(),
           valueType: z.enum(ValueType),
         value: z.number().positive(),
         minPurchaseAmount: z.number().positive(),
@@ -71,7 +71,6 @@ export class MinimumDiscountValidation {
       limit: z.coerce.number().int().positive().max(100).default(10),
       storeId: z.string().uuid("Invalid store id").optional(),
       productId: z.string().uuid("Invalid product id").optional(),
-      activeOnly: z.coerce.boolean().default(true),
     }),
   });
 }

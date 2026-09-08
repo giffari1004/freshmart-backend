@@ -29,37 +29,53 @@ export async function assertProductValid(productId: string) {
 }
 
 export function voucherWhere({
+  user,
   search,
   usageType,
   valueType,
-  isActive,
+  storeId,
 }: VourcherFilterProps): Prisma.VoucherWhereInput {
+  const now = new Date();
   return {
     deletedAt: null,
+    isActive: true,
+    expiredAt: { gte: now },
+    ...(user.role === "STORE_ADMIN"
+      ? { storeId: user.storeId! }
+      : storeId
+        ? { storeId }
+        : {}),
     ...(search && { code: { contains: search, mode: "insensitive" } }),
     ...(usageType && { usageType }),
     ...(valueType && { valueType }),
-    ...(isActive !== undefined && { isActive }),
   };
 }
 
+export function voucherStoreId(user: AuthUser, bodyStoreId?: string) {
+  if (user.role === "STORE_ADMIN") {
+    return user.storeId!;
+  }
+  if (!bodyStoreId) {
+    throw new Forbidden("Store is required");
+  }
+  return bodyStoreId;
+}
+
 export function discountWhere({
+  user,
   type,
   storeId,
   productId,
-  activeOnly,
 }: DiscountFilterProps): Prisma.DiscountWhereInput {
   const now = new Date();
   return {
     type,
     deletedAt: null,
-    ...(storeId && { storeId }),
+    isActive: true,
+    startDate: { lte: now },
+    endDate: { gte: now },
+    ...(user.role === "STORE_ADMIN" ? { storeId: user.storeId! } : { storeId }),
     ...(productId && { productId }),
-    ...(activeOnly && {
-      isActive: true,
-      startDate: { lte: now },
-      endDate: { gte: now },
-    }),
   };
 }
 
@@ -68,12 +84,16 @@ export async function duplicateDiscount({
   productId,
   type,
 }: DiscountDuplicateProps) {
+  const now = new Date();
   const duplicate = await prisma.discount.findFirst({
     where: {
       storeId,
       productId,
       type,
       deletedAt: null,
+      isActive: true,
+      startDate: { lte: now },
+      endDate: { gte: now },
     },
   });
   if (duplicate)
@@ -81,7 +101,6 @@ export async function duplicateDiscount({
       `${type} discount for this product and store already exists`,
     );
 }
-
 export async function existingDiscount({ id, type }: ExistingDiscountProps) {
   const existing = await prisma.discount.findFirst({
     where: {
@@ -96,18 +115,19 @@ export async function existingDiscount({ id, type }: ExistingDiscountProps) {
 }
 
 export async function findVoucherOrError(id: string) {
-  const existingVoucher = await prisma.voucher.findUnique({
-    where: { id,deletedAt:null },
+  const existingVoucher = await prisma.voucher.findFirst({
+    where: { id, deletedAt: null },
   });
   if (!existingVoucher) throw new NotFoundError("Voucher not found");
   return existingVoucher;
 }
 export async function checkVoucherCodeDuplicate(
+  storeId: string,
   code: string,
   excludeId?: string,
 ) {
-  const existingVoucher = await prisma.voucher.findFirst({
-    where: { code , deletedAt:null},
+  const existingVoucher = await prisma.voucher.findUnique({
+    where: { storeId_code: { storeId, code } },
   });
   if (existingVoucher && existingVoucher.id !== excludeId) {
     throw new ConflictError("Voucher code already exists");

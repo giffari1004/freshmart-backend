@@ -65,7 +65,7 @@ export class ProductValidation {
     }),
   });
   static readonly GET_PRODUCT_DETAIL = z.object({
-    params: z.object({ id: z.string().uuid("Invalid product id") }),
+    params: z.object({ slug: z.string() }),
     query: z.object({ storeId: z.string().uuid("Invalid store id") }),
   });
 }
@@ -81,7 +81,9 @@ export type getAllAdminProductSchema = z.infer<
 export type updateProductSchema = z.infer<
   typeof ProductValidation.UPDATE_PRODUCT
 >;
-export type getAllCustomerProductSchema = z.infer<typeof ProductValidation.GET_ALL_CUSTOMER_PRODUCT>;
+export type getAllCustomerProductSchema = z.infer<
+  typeof ProductValidation.GET_ALL_CUSTOMER_PRODUCT
+>;
 export type getProductDetailSchema = z.infer<
   typeof ProductValidation.GET_PRODUCT_DETAIL
 >;

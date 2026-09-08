@@ -41,7 +41,8 @@ export class BogoController {
   }
   static async getAll(req: Request, res: Response) {
     const { query } = validate(BogoValidation.GET_ALL, { query: req.query });
-    const {data,meta} = await BogoService.getAll({ query });
+    const user = req.user!
+    const {data,meta} = await BogoService.getAll({ query },user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "BOGO retrieved successfully",

@@ -38,6 +38,7 @@ export class SalesReportService {
       productName: row.productName,
       totalSales: Number(row.totalSales),
       quantitySold: Number(row.quantitySold),
+      productImage:row.productImage
     }));
   }
   static async getCategoryReport(

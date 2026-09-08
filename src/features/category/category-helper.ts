@@ -4,11 +4,10 @@ import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 
 export async function findCategoryOrError(id: string) {
-  const existing = await prisma.productCategory.findUnique({
-    where: { id },
+  const existing = await prisma.productCategory.findFirst({
+    where: { id, deletedAt: null },
   });
-  if (!existing || existing.deletedAt)
-    throw new NotFoundError("Category not found");
+  if (!existing) throw new NotFoundError("Category not found");
 }
 export function whereCategory(
   search?: string,
@@ -22,7 +21,7 @@ export function whereCategory(
 }
 export async function checkDuplicateCategory(name: string, excludeId?: string) {
   const duplicate = await prisma.productCategory.findFirst({
-    where: { name , ...(excludeId && { id : {not:excludeId}})},
+    where: { name, ...(excludeId && { id: { not: excludeId } }) },
   });
   if (duplicate) throw new ConflictError("Category name already exists");
 }

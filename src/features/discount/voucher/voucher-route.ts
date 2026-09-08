@@ -5,7 +5,7 @@ import { requireRole } from "../../../middlewares/role-middleware";
 
 export const voucherRoute = Router();
 
-voucherRoute.use(authMiddleware, requireRole("SUPER_ADMIN"));
+voucherRoute.use(authMiddleware, requireRole("SUPER_ADMIN","STORE_ADMIN"));
 voucherRoute.get("/", VoucherController.getAllVoucher);
 voucherRoute.get("/:id", VoucherController.getVoucherById);
 voucherRoute.post("/", VoucherController.createVoucher);

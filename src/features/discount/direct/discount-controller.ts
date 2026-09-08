@@ -43,7 +43,8 @@ export class DiscountController {
     const { query } = validate(DiscountValidation.GET_DISCOUNTS, {
       query: req.query,
     });
-    const { data, meta } = await DiscountService.getAll({ query });
+    const user = req.user!
+    const { data, meta } = await DiscountService.getAll({ query },user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Discounts retrieved successfully",
