@@ -1,8 +1,5 @@
 import axios from "axios";
-import {
-  RAJAONGKIR_API_KEY,
-  RAJAONGKIR_BASE_URL,
-} from "../configs/env-config";
+import { RAJAONGKIR_API_KEY, RAJAONGKIR_BASE_URL } from "../configs/env-config";
 
 export interface ShippingOption {
   courierCode: string;
@@ -48,9 +45,7 @@ function getHeaders() {
   };
 }
 
-function mapDestination(
-  item: RajaOngkirDestinationResponse,
-): RajaOngkirCity {
+function mapDestination(item: RajaOngkirDestinationResponse): RajaOngkirCity {
   return {
     cityId: String(item.id),
     cityName: item.city,
@@ -61,15 +56,13 @@ function mapDestination(
   };
 }
 
-export async function searchCities(
-  keyword: string,
-): Promise<RajaOngkirCity[]> {
+export async function searchCities(keyword: string): Promise<RajaOngkirCity[]> {
   const search = keyword.trim();
 
   if (!search) {
     return [];
   }
-
+  console.log("RAJAONGKIR_BASE_URL runtime value:", RAJAONGKIR_BASE_URL);
   const response = await axios.get(
     `${RAJAONGKIR_BASE_URL}/destination/domestic-destination`,
     {
@@ -83,9 +76,7 @@ export async function searchCities(
   );
 
   const results =
-    (response.data?.data as
-      | RajaOngkirDestinationResponse[]
-      | undefined) ?? [];
+    (response.data?.data as RajaOngkirDestinationResponse[] | undefined) ?? [];
 
   return results.map(mapDestination);
 }
@@ -124,9 +115,7 @@ export async function getShippingOptions(
   );
 
   const results =
-    (response.data?.data as
-      | RajaOngkirShippingResponse[]
-      | undefined) ?? [];
+    (response.data?.data as RajaOngkirShippingResponse[] | undefined) ?? [];
 
   return results.map((item) => ({
     courierCode: item.code,
