@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export type AdminOrderStatus =
+  | "PROCESSED"
+  | "SHIPPED"
+  | "CANCELLED";
+
 export const orderAdminStatusSchema = z.enum([
   "PROCESSED",
   "SHIPPED",
@@ -13,13 +18,18 @@ export const orderAdminListSchema = z.object({
     status: z.enum([
       "WAITING_PAYMENT",
       "PAID",
-      "WAITING_CONFIRMATION",
       "PROCESSED",
       "SHIPPED",
       "CONFIRMED",
       "CANCELLED",
     ]).optional(),
-    sortBy: z.enum(["createdAt", "totalAmount", "orderNumber", "status"]).default("createdAt"),
+    storeId: z.string().uuid().optional(),
+    sortBy: z.enum([
+      "createdAt",
+      "totalAmount",
+      "orderNumber",
+      "status",
+    ]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
   }),
 });
@@ -29,5 +39,8 @@ export const orderAdminUpdateSchema = z.object({
   body: z.object({ status: orderAdminStatusSchema }),
 });
 
-export type OrderAdminListInput = z.infer<typeof orderAdminListSchema>;
-export type OrderAdminUpdateInput = z.infer<typeof orderAdminUpdateSchema>;
+export type OrderAdminListInput =
+  z.infer<typeof orderAdminListSchema>;
+
+export type OrderAdminUpdateInput =
+  z.infer<typeof orderAdminUpdateSchema>;

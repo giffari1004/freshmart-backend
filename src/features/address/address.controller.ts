@@ -78,6 +78,18 @@ export class AddressController {
     });
   }
 
+  static async geocodeCity(req: Request, res: Response) {
+    const { query } = validate(AddressValidation.GEOCODE_CITY, {
+      query: req.query,
+    });
+    const coordinates = await AddressService.geocodeCity({ query });
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Coordinates retrieved successfully",
+      data: coordinates,
+    });
+  }
+
   static async setPrimary(req: Request, res: Response) {
     const { params } = validate(AddressValidation.SET_PRIMARY_ADDRESS, {
       params: req.params,

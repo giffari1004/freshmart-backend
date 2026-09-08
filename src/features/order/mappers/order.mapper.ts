@@ -3,6 +3,7 @@ import {
   CreateOrderResponse,
   OrderDetailResponse,
   OrderListItemResponse,
+  OrderStatusHistoryResponse,
 } from "../order.type";
 
 interface OrderMapperInput {
@@ -51,6 +52,11 @@ type OrderDetailInput = {
       status: string;
       amount: Prisma.Decimal;
     }>;
+    statusHistories: Array<{
+      status: string;
+      notes: string | null;
+      createdAt: Date;
+    }>;
   };
   store: { id: string; name: string; code: string } | null;
   shipping: {
@@ -95,13 +101,10 @@ export class OrderMapper {
       ...mapOrderSummary(data.order),
       store: mapStore(data.store, data.order.storeId),
       deliveryAddress: mapAddress(data.order),
-      shipping: mapShipping(
-        data.shipping,
-        data.order.shippingMethodId,
-        Number(data.order.shippingCost),
-      ),
+      shipping: mapShipping(data.shipping, data.order.shippingMethodId, Number(data.order.shippingCost)),
       items: data.order.items.map(toOrderItem),
       payment: mapPayment(data.order.payments[0]),
+      statusHistory: data.order.statusHistories.map(mapStatusHistory),
     };
   }
 }
@@ -183,5 +186,15 @@ function mapPayment(
     method: payment.method,
     status: payment.status,
     amount: Number(payment.amount),
+  };
+}
+
+function mapStatusHistory(
+  history: OrderDetailInput["order"]["statusHistories"][number],
+): OrderStatusHistoryResponse {
+  return {
+    status: history.status,
+    notes: history.notes,
+    createdAt: history.createdAt.toISOString(),
   };
 }

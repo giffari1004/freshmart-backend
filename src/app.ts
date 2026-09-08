@@ -84,7 +84,7 @@ app.use("/api/v1/discounts/calculate", discountCalculateRoute);
 app.use("/api/v1/discounts/usage", discountUsageRoute);
 app.use('/api/v1/admin/bogo', bogoRoute);
 app.use('/api/v1/bogo', bogoPublicRoute);
-app.use("/api/v1/vouchers", voucherPublicRoute); 
+app.use("/api/v1/vouchers", voucherPublicRoute);
 app.use("/api/v1/admin/discounts", discountRoute);
 app.use("/api/v1/admin", adminRouter);
 

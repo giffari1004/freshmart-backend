@@ -12,13 +12,17 @@ export class AddressValidation {
         .max(20, "Phone number is invalid"),
       province: z.string().trim().min(1, "Province is required"),
       city: z.string().trim().min(1, "City is required"),
-      // DEPENDENSI SCHEMA: field ini butuh kolom `rajaOngkirCityId` di
-      // model UserAddress. Wajib diisi dari hasil pilih kota lewat
-      // GET /addresses/cities?search=, BUKAN diketik bebas — dipakai
-      // sebagai `destination` saat hitung ongkir ke RajaOngkir.
       rajaOngkirCityId: z.string().trim().min(1, "City ID is required"),
       district: z.string().trim().min(1, "District is required"),
       fullAddress: z.string().trim().min(1, "Full address is required"),
+      latitude: z
+        .number({ error: "Please pin your exact location on the map" })
+        .min(-90)
+        .max(90),
+      longitude: z
+        .number({ error: "Please pin your exact location on the map" })
+        .min(-180)
+        .max(180),
       isPrimary: z.boolean().optional().default(false),
     }),
   });
@@ -34,6 +38,14 @@ export class AddressValidation {
       rajaOngkirCityId: z.string().trim().min(1).optional(),
       district: z.string().trim().min(1).optional(),
       fullAddress: z.string().trim().min(1).optional(),
+      latitude: z.number().min(-90).max(90).optional(),
+      longitude: z.number().min(-180).max(180).optional(),
+    }),
+  });
+
+  static readonly GEOCODE_CITY = z.object({
+    query: z.object({
+      address: z.string().trim().min(1, "Address text is required"),
     }),
   });
 
@@ -88,3 +100,4 @@ export type getShippingOptionsSchema = z.infer<
 export type searchCitiesSchema = z.infer<
   typeof AddressValidation.SEARCH_CITIES
 >;
+export type geocodeCitySchema = z.infer<typeof AddressValidation.GEOCODE_CITY>;

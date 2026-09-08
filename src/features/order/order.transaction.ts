@@ -1,6 +1,17 @@
 import { Prisma } from "../../../generated/prisma";
-import { BadRequestError } from "../../errors/BadRequestError";
 import { OrderItemCalculation } from "./helper/order.helper";
+import {
+  clearCartItems,
+  consumeUserVoucher,
+  createInitialStatusHistory,
+  createOrder,
+  createOrderItems,
+  createOrderVoucher,
+  createPayment,
+  createReserveJournal,
+  getCreatedOrder,
+  reserveStockItem,
+} from "./order.transaction.helper";
 
 export interface CreateOrderTransactionData {
   userId: string;
@@ -24,70 +35,16 @@ export async function runCreateOrderTransaction(
   tx: Prisma.TransactionClient,
   data: CreateOrderTransactionData,
 ) {
-  const order = await createOrder(tx, data);
+  const deadline = new Date(Date.now() + 60 * 60 * 1000);
+  const order = await createOrder(tx, data, deadline);
   await createInitialStatusHistory(tx, order.id, data.userId);
   await createOrderItems(tx, order.id, data.items);
   await reserveStock(tx, order.id, data.items);
   await consumeUserVoucher(tx, data);
   await createOrderVoucher(tx, order.id, data);
-  await createPayment(tx, order.id, order.orderNumber, data.totalAmount);
-
-  return tx.order.findUniqueOrThrow({
-    where: { id: order.id },
-    include: { items: true, orderVouchers: true, payments: true },
-  });
-}
-
-async function createOrder(tx: Prisma.TransactionClient, data: CreateOrderTransactionData) {
-  return tx.order.create({ data: buildOrderData(data) });
-}
-
-function buildOrderData(data: CreateOrderTransactionData) {
-  return {
-    orderNumber: `ORD-${Date.now()}`,
-    userId: data.userId,
-    storeId: data.storeId,
-    recipientName: data.recipientName,
-    recipientPhone: data.recipientPhone,
-    province: data.province,
-    city: data.city,
-    district: data.district,
-    fullAddress: data.fullAddress,
-    shippingMethodId: data.shippingMethodId,
-    status: "WAITING_PAYMENT" as const,
-    subtotal: data.subtotal,
-    discountAmount: data.discountAmount,
-    shippingCost: data.shippingCost,
-    totalAmount: data.totalAmount,
-  };
-}
-
-async function createInitialStatusHistory(
-  tx: Prisma.TransactionClient,
-  orderId: string,
-  userId: string,
-) {
-  await tx.orderStatusHistory.create({
-    data: {
-      orderId,
-      status: "WAITING_PAYMENT",
-      changedById: userId,
-      notes: "Order created",
-    },
-  });
-}
-
-async function createOrderItems(tx: Prisma.TransactionClient, orderId: string, items: OrderItemCalculation[]) {
-  await tx.orderItem.createMany({
-    data: items.map((item) => ({
-      orderId,
-      productId: item.productId,
-      productNameSnapshot: item.productName,
-      priceSnapshot: item.unitPrice,
-      quantity: item.quantity,
-      subtotal: item.subtotal,
-    })),
-  });
+  await createPayment(tx, order.id, order.orderNumber, data.totalAmount, deadline);
+  await clearCartItems(tx, data.userId);
+  return getCreatedOrder(tx, order.id);
 }
 
 async function reserveStock(
@@ -96,62 +53,6 @@ async function reserveStock(
   items: OrderItemCalculation[],
 ) {
   for (const item of items) {
-    const rows = await tx.$queryRaw<
-      { stockQuantity: number; reservedStock: number }[]
-    >`
-      UPDATE "store_products"
-      SET "reservedStock" = "reservedStock" + ${item.quantity}
-      WHERE "id" = ${item.storeProductId}
-        AND ("stockQuantity" - "reservedStock") >= ${item.quantity}
-      RETURNING "stockQuantity", "reservedStock"
-    `;
-
-    const updated = rows[0];
-    if (!updated) {
-      throw new BadRequestError(`Insufficient stock for product ${item.productName}`);
-    }
-
-    await tx.stockJournal.create({
-      data: {
-        storeProductId: item.storeProductId,
-        type: "RESERVE",
-        quantity: item.quantity,
-        beforeStock: updated.stockQuantity,
-        afterStock: updated.stockQuantity,
-        referenceType: "ORDER",
-        referenceId: orderId,
-        notes: "Stock reserved for order",
-      },
-    });
+    await reserveStockItem(tx, orderId, item);
   }
-}
-
-
-async function consumeUserVoucher(
-  tx: Prisma.TransactionClient,
-  data: CreateOrderTransactionData,
-) {
-  if (!data.userVoucherId) return;
-
-  const result = await tx.userVoucher.updateMany({
-    where: {
-      id: data.userVoucherId,
-      userId: data.userId,
-      isUsed: false,
-    },
-    data: { isUsed: true },
-  });
-
-  if (!result.count) {
-    throw new BadRequestError("Voucher is already used or unavailable");
-  }
-}
-
-async function createOrderVoucher(tx: Prisma.TransactionClient, orderId: string, data: CreateOrderTransactionData) {
-  if (!data.userVoucherId) return;
-  await tx.orderVoucher.create({ data: { orderId, userVoucherId: data.userVoucherId, amountDeducted: data.discountAmount } });
-}
-
-async function createPayment(tx: Prisma.TransactionClient, orderId: string, orderNumber: string, amount: number) {
-  await tx.payment.create({ data: { orderId, method: "GATEWAY", status: "PENDING", amount, gatewayOrderId: orderNumber } });
 }
