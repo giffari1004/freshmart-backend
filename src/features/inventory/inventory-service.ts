@@ -23,10 +23,20 @@ import { getPagination } from "../../helper/getPagination";
 import { createMeta } from "../../helper/createMeta";
 
 export class InventoryService {
-  static async getAllInventory({ query}: getAllInventorySchema,user:AuthUser) {
+  static async getAllInventory(
+    { query }: getAllInventorySchema,
+    user: AuthUser,
+  ) {
     const { page, limit, search, sortBy, sortOrder, storeId } = query;
     const { skip, take } = getPagination(page, limit);
-    const where = whereInventory(user,search, storeId);
+
+    const where = {
+      ...whereInventory(user, search, storeId),
+      product: {
+        deletedAt: null,
+      },
+    };
+
     const [inventories, totalData] = await Promise.all([
       prisma.storeProduct.findMany({
         where,
@@ -46,6 +56,7 @@ export class InventoryService {
       }),
       prisma.storeProduct.count({ where }),
     ]);
+
     const meta = createMeta(page, limit, totalData);
     return { inventories, meta };
   }
