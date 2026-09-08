@@ -5,9 +5,7 @@ import { requireRole } from "../../middlewares/role-middleware";
 import { upload } from "../../middlewares/upload-middleware";
 
 export const productRoute = Router();
-
 productRoute.use(authMiddleware);
-
 productRoute.get(
   "/",
   requireRole("SUPER_ADMIN", "STORE_ADMIN"),

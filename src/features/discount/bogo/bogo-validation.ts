@@ -4,7 +4,7 @@ export class BogoValidation {
   static readonly CREATE = z.object({
     body: z
       .object({
-        storeId: z.string().uuid("Invalid store id"),
+        storeId: z.string().uuid("Invalid store id").optional(),
         productId: z.string().uuid("Invalid product id"),
         startDate: z.coerce.date(),
         endDate: z.coerce.date(),
@@ -56,7 +56,6 @@ export class BogoValidation {
       limit: z.coerce.number().int().positive().max(100).default(10),
       storeId: z.string().uuid().optional(),
       productId: z.string().uuid().optional(),
-      activeOnly: z.coerce.boolean().default(true),
     }),
   });
 }

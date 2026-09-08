@@ -33,6 +33,7 @@
     "node-cron": "^4.6.0",
     "nodemailer": "^9.0.3",
     "pg": "^8.22.0",
+    "slugify": "^1.6.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {

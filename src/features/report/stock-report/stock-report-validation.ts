@@ -12,10 +12,16 @@ export class StockReportValidation {
     query: z.object({
       storeId: z.string().uuid("Invalid store ID").optional(),
       productId: z.string().uuid("Invalid product ID").optional(),
+      page: z.coerce.number().int().positive().default(1),
+      limit: z.coerce.number().int().positive().default(10),
       year: z.coerce.number().int().min(2026),
       month: z.coerce.number().int().min(1).max(12),
     }),
   });
 }
-export type getMonthlySummarySchema = z.infer<typeof StockReportValidation.GET_MONTHLY_SUMMARY>;
-export type getStockDetailSchema = z.infer<typeof StockReportValidation.GET_STOCK_DETAIL>;
+export type getMonthlySummarySchema = z.infer<
+  typeof StockReportValidation.GET_MONTHLY_SUMMARY
+>;
+export type getStockDetailSchema = z.infer<
+  typeof StockReportValidation.GET_STOCK_DETAIL
+>;

@@ -8,6 +8,7 @@ import {
   discountWhere,
   duplicateDiscount,
   existingDiscount,
+  voucherStoreId,
 } from "../discount-helper";
 import {
   createDiscountSchema,
@@ -18,12 +19,13 @@ import {
 
 export class DiscountService {
   static async create({ body }: createDiscountSchema, user: AuthUser) {
-    assertStoreOwnership(user, body.storeId);
+    const storeId = voucherStoreId(user,body.storeId)
+    assertStoreOwnership(user,storeId);
     await assertProductValid(body.productId);
-    await duplicateDiscount({storeId:body.storeId,productId:body.productId,type:"DIRECT"})
+    await duplicateDiscount({storeId,productId:body.productId,type:"DIRECT"})
     return prisma.discount.create({
       data: {
-        storeId: body.storeId,
+        storeId,
         productId: body.productId,
         type: "DIRECT",
         valueType: body.valueType,
@@ -56,14 +58,14 @@ export class DiscountService {
       },
     });
   }
-  static async getAll({ query }: getDiscountsSchema) {
-    const { page, limit, storeId, productId, activeOnly } = query;
+  static async getAll({ query }: getDiscountsSchema,user:AuthUser) {
+    const { page, limit, storeId, productId } = query;
     const { skip, take } = getPagination(page, limit);
     const where = discountWhere({
-      type: "BUY1GET1",
+      user,
+      type: "DIRECT",
       storeId,
       productId,
-      activeOnly,
     });
     const [data, totalData] = await Promise.all([
       await prisma.discount.findMany({

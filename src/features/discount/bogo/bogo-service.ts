@@ -1,7 +1,7 @@
 import { prisma } from "../../../configs/prisma-client-config";
 import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
-import { assertProductValid, assertStoreOwnership, discountWhere, duplicateDiscount, existingDiscount } from "../discount-helper";
+import { assertProductValid, assertStoreOwnership, discountWhere, duplicateDiscount, existingDiscount, voucherStoreId } from "../discount-helper";
 import {
   CalculateBogoSchema,
   CreateBogoSchema,
@@ -13,12 +13,13 @@ import { createMeta } from "../../../helper/createMeta";
 
 export class BogoService {
   static async create({ body }: CreateBogoSchema, user: AuthUser) {
-    assertStoreOwnership(user, body.storeId);
+    const storeId = voucherStoreId(user,body.storeId)
+    assertStoreOwnership(user, storeId);
     await assertProductValid(body.productId);
-    await duplicateDiscount({storeId:body.storeId,productId:body.productId,type:"BUY1GET1"})
+    await duplicateDiscount({storeId,productId:body.productId,type:"BUY1GET1"})
     const createBogo = await prisma.discount.create({
       data: {
-        storeId: body.storeId,
+        storeId,
         productId: body.productId,
         type: "BUY1GET1",
         valueType: "NOMINAL",
@@ -89,10 +90,10 @@ export class BogoService {
       productId: body.productId,
     };
   }
-  static async getAll({ query }: GetAllBogoSchema) {
-    const {page,limit,storeId,productId,activeOnly} = query
+  static async getAll({ query }: GetAllBogoSchema,user:AuthUser) {
+    const {page,limit,storeId,productId} = query
     const {skip, take} = getPagination(page,limit)
-    const where = discountWhere({type:"BUY1GET1",storeId,productId,activeOnly})
+    const where = discountWhere({user,type:"BUY1GET1",storeId,productId})
     const [data,totalData] = await Promise.all([
       await prisma.discount.findMany({
         where,

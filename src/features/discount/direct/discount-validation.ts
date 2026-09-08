@@ -5,7 +5,7 @@ export class DiscountValidation {
   static readonly CREATE_DISCOUNT = z.object({
     body: z
       .object({
-        storeId: z.string().uuid("Invalid store id"),
+        storeId: z.string().uuid("Invalid store id").optional(),
         productId: z.string().uuid("Invalid product id"),
         valueType: z.enum(ValueType),
         value: z.number().positive(),
@@ -49,7 +49,6 @@ export class DiscountValidation {
       limit: z.coerce.number().int().positive().max(100).default(10),
       storeId: z.string().uuid("Invalid store id").optional(),
       productId: z.string().uuid("Invalid product id").optional(),
-      activeOnly: z.coerce.boolean().default(true),
     }),
   });
 }

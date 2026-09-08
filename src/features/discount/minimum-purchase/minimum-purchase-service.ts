@@ -1,13 +1,12 @@
 import { prisma } from "../../../configs/prisma-client-config";
-import { NotFoundError } from "../../../errors/NotFoundError";
 import { createMeta } from "../../../helper/createMeta";
 import { getPagination } from "../../../helper/getPagination";
 import { AuthUser } from "../../../middlewares/auth-middleware";
 import {
-  assertProductValid,
   assertStoreOwnership,
   discountWhere,
   existingDiscount,
+  voucherStoreId,
 } from "../discount-helper";
 import {
   createMinimumDiscountSchema,
@@ -18,10 +17,11 @@ import {
 
 export class MinimumPurchaseDiscountService {
   static async create({ body }: createMinimumDiscountSchema, user: AuthUser) {
-    assertStoreOwnership(user, body.storeId);
+    const storeId = voucherStoreId(user,body.storeId)
+    assertStoreOwnership(user, storeId);
     return prisma.discount.create({
       data: {
-        storeId: body.storeId,
+        storeId,
         type: "MIN_PURCHASE",
         valueType: body.valueType,
         value: body.value,
@@ -67,14 +67,14 @@ export class MinimumPurchaseDiscountService {
     });
   }
 
-  static async getAll({ query }: getMinimumPurchaseSchema) {
-    const { page, limit, storeId, productId, activeOnly } = query;
+  static async getAll({ query }: getMinimumPurchaseSchema,user:AuthUser) {
+    const { page, limit, storeId, productId } = query;
     const { skip, take } = getPagination(page, limit);
     const where = discountWhere({
+      user,
       type: "MIN_PURCHASE",
       storeId,
       productId,
-      activeOnly,
     });
     const [data, totalData] = await Promise.all([
       await prisma.discount.findMany({

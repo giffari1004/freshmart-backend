@@ -9,7 +9,8 @@ export class VoucherController {
     const { query } = validate(VoucherValidation.GET_ALL_VOUCHER, {
       query: req.query,
     });
-    const { data, meta } = await VoucherService.getAllVoucher({ query });
+    const user = req.user!;
+    const { data, meta } = await VoucherService.getAllVoucher({ query }, user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Voucher retrieved successfully",
@@ -21,7 +22,8 @@ export class VoucherController {
     const { body } = validate(VoucherValidation.CREATE_VOUCHER, {
       body: req.body,
     });
-    const voucher = await VoucherService.createVoucher({ body });
+    const user = req.user!;
+    const voucher = await VoucherService.createVoucher({ body }, user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Voucher created successfully",
@@ -33,7 +35,8 @@ export class VoucherController {
       params: req.params,
       body: req.body,
     });
-    const voucher = await VoucherService.updateVoucher({ params, body });
+    const user = req.user!
+    const voucher = await VoucherService.updateVoucher({ params, body },user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Voucher updated successfully",
@@ -44,7 +47,8 @@ export class VoucherController {
     const { params } = validate(VoucherValidation.VOUCHER_ID_PARAM, {
       params: req.params,
     });
-    const voucher = await VoucherService.deleteVoucher({ params });
+    const user = req.user!
+    const voucher = await VoucherService.deleteVoucher({ params },user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Voucher deleted successfully",

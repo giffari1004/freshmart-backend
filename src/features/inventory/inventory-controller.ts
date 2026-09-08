@@ -9,9 +9,13 @@ export class InventoryController {
     const { query } = validate(InventoryValidation.GET_ALL_INVENTORY, {
       query: req.query,
     });
-    const { inventories, meta } = await InventoryService.getAllInventory({
-      query,
-    });
+    const user = req.user!;
+    const { inventories, meta } = await InventoryService.getAllInventory(
+      {
+        query,
+      },
+      user,
+    );
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Inventory retrieved successfully",

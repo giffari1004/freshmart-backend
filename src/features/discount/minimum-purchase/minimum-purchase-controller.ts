@@ -52,7 +52,8 @@ export class MinimumPurchaseDiscountController {
     const { query } = validate(MinimumDiscountValidation.GET_MINIMUM_PURCHASE, {
       query: req.query,
     });
-    const {data,meta} = await MinimumPurchaseDiscountService.getAll({ query });
+    const user = req.user!
+    const {data,meta} = await MinimumPurchaseDiscountService.getAll({ query },user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Discounts retrieved successfully",

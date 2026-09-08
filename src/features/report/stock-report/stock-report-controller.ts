@@ -21,11 +21,12 @@ export class StockReportController {
       query: req.query,
     });
     const user = req.user!
-    const result = await StockReportServices.getStockDetail({ query }, user);
+    const {data,meta} = await StockReportServices.getStockDetail({ query }, user);
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Stock report retrieved successfully",
-      data: result,
+      data,
+      meta
     });
   }
 }
