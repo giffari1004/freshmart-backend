@@ -24,11 +24,11 @@ export interface RajaOngkirCity {
 interface RajaOngkirDestinationResponse {
   id: number;
   label: string;
-  province: string;
-  city: string;
-  district: string;
-  subdistrict: string;
-  zipCode: string;
+  province_name: string;
+  city_name: string;
+  district_name: string;
+  subdistrict_name: string;
+  zip_code: string;
 }
 
 interface RajaOngkirShippingResponse {
@@ -53,11 +53,11 @@ function mapDestination(
 ): RajaOngkirCity {
   return {
     cityId: String(item.id),
-    cityName: item.city,
+    cityName: item.city_name,
     provinceId: "",
-    province: item.province,
-    type: "",
-    postalCode: item.zipCode,
+    province: item.province_name,
+    type: item.district_name, 
+    postalCode: item.zip_code,
   };
 }
 
