@@ -9,6 +9,21 @@ export class BogoValidation {
         startDate: z.coerce.date(),
         endDate: z.coerce.date(),
       })
+      .refine(
+        (data) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const startDate = new Date(data.startDate);
+          startDate.setHours(0, 0, 0, 0);
+
+          return startDate >= today;
+        },
+        {
+          message: "Start date cannot be before today",
+          path: ["startDate"],
+        },
+      )
       .refine((data) => data.endDate > data.startDate, {
         message: "End date must be after start date",
         path: ["endDate"],
@@ -50,6 +65,7 @@ export class BogoValidation {
       quantity: z.number().int().positive(),
     }),
   });
+
   static readonly GET_ALL = z.object({
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
@@ -59,6 +75,7 @@ export class BogoValidation {
     }),
   });
 }
+
 export type GetAllBogoSchema = z.infer<typeof BogoValidation.GET_ALL>;
 export type CreateBogoSchema = z.infer<typeof BogoValidation.CREATE>;
 export type UpdateBogoSchema = z.infer<typeof BogoValidation.UPDATE>;

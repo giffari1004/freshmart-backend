@@ -12,6 +12,21 @@ export class DiscountValidation {
         startDate: z.coerce.date(),
         endDate: z.coerce.date(),
       })
+      .refine(
+        (data) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const startDate = new Date(data.startDate);
+          startDate.setHours(0, 0, 0, 0);
+
+          return startDate >= today;
+        },
+        {
+          message: "Start date cannot be before today",
+          path: ["startDate"],
+        },
+      )
       .refine((data) => data.endDate > data.startDate, {
         message: "End date must be after start date",
         path: ["endDate"],

@@ -6,13 +6,28 @@ export class MinimumDiscountValidation {
     body: z
       .object({
         storeId: z.string().uuid("Invalid store id").optional(),
-          valueType: z.enum(ValueType),
+        valueType: z.enum(ValueType),
         value: z.number().positive(),
         minPurchaseAmount: z.number().positive(),
         maxDiscountAmount: z.number().positive().optional(),
         startDate: z.coerce.date(),
         endDate: z.coerce.date(),
       })
+      .refine(
+        (data) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const startDate = new Date(data.startDate);
+          startDate.setHours(0, 0, 0, 0);
+
+          return startDate >= today;
+        },
+        {
+          message: "Start date cannot be before today",
+          path: ["startDate"],
+        },
+      )
       .refine(
         (data) => (data.valueType === "PERCENTAGE" ? data.value <= 100 : true),
         {
@@ -25,6 +40,7 @@ export class MinimumDiscountValidation {
         path: ["endDate"],
       }),
   });
+
   static readonly UPDATE = z
     .object({
       params: z.object({
@@ -41,7 +57,8 @@ export class MinimumDiscountValidation {
     })
     .refine(
       (data) =>
-        data.body.valueType === "PERCENTAGE" && data.body.value !== undefined
+        data.body.valueType === "PERCENTAGE" &&
+        data.body.value !== undefined
           ? data.body.value <= 100
           : true,
       {
@@ -65,24 +82,29 @@ export class MinimumDiscountValidation {
       id: z.string().uuid("Invalid discount id"),
     }),
   });
+
   static readonly GET_MINIMUM_PURCHASE = z.object({
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
-      storeId: z.string().uuid("Invalid store id").optional(),
-      productId: z.string().uuid("Invalid product id").optional(),
+      storeId: z.string().uuid().optional(),
+      productId: z.string().uuid().optional(),
     }),
   });
 }
+
 export type getMinimumPurchaseSchema = z.infer<
   typeof MinimumDiscountValidation.GET_MINIMUM_PURCHASE
 >;
+
 export type createMinimumDiscountSchema = z.infer<
   typeof MinimumDiscountValidation.CREATE
 >;
+
 export type updateMinimumDiscountSchema = z.infer<
   typeof MinimumDiscountValidation.UPDATE
 >;
+
 export type deleteMinimumDiscountSchema = z.infer<
   typeof MinimumDiscountValidation.DELETE
 >;
