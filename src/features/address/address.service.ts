@@ -159,8 +159,12 @@ export class AddressService {
 
   static async searchCities(query: string) {
     const destinations = await searchCities(query);
+
+    if (!Array.isArray(destinations)) {
+      return[]
+    }
     return destinations.map((d) => ({
-      cityId: d.cityId,
+      cityId: String(d.cityId),
       cityName: d.cityName,
       provinceId: d.provinceId,
       province: d.province,
