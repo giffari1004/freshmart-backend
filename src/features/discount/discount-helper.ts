@@ -67,14 +67,15 @@ export function discountWhere({
   storeId,
   productId,
 }: DiscountFilterProps): Prisma.DiscountWhereInput {
-  const now = new Date();
   return {
     type,
     deletedAt: null,
     isActive: true,
-    startDate: { lte: now },
-    endDate: { gte: now },
-    ...(user.role === "STORE_ADMIN" ? { storeId: user.storeId! } : { storeId }),
+    ...(user.role === "STORE_ADMIN"
+      ? { storeId: user.storeId! }
+      : storeId
+        ? { storeId }
+        : {}),
     ...(productId && { productId }),
   };
 }
