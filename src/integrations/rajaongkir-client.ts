@@ -48,7 +48,7 @@ function getHeaders() {
 function mapDestination(item: RajaOngkirDestinationResponse): RajaOngkirCity {
   return {
     cityId: String(item.id),
-    cityName: item.city_name,
+    cityName: item.label,
     provinceId: "",
     province: item.province_name,
     type: item.district_name, 
@@ -62,7 +62,7 @@ export async function searchCities(keyword: string): Promise<RajaOngkirCity[]> {
   if (!search) {
     return [];
   }
-  console.log("RAJAONGKIR_BASE_URL runtime value:", RAJAONGKIR_BASE_URL);
+  
   const response = await axios.get(
     `${RAJAONGKIR_BASE_URL}/destination/domestic-destination`,
     {
