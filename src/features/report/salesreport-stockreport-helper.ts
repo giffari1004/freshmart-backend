@@ -167,6 +167,7 @@ export function queryMonthlyStockSummary(
   storeId?: string,
   year?: number,
   month?: number,
+  productId?: string,
 ) {
   return prisma.$queryRaw<
     {
@@ -212,6 +213,7 @@ export function queryMonthlyStockSummary(
       ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM sj."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM sj."createdAt") = ${month}` : Prisma.empty}
+      ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
     GROUP BY
       month,
       p."id",
@@ -220,4 +222,4 @@ export function queryMonthlyStockSummary(
       month ASC,
       p."name" ASC
   `;
-}
+} 

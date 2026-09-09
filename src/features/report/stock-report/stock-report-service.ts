@@ -6,7 +6,8 @@ import {
   queryStockDetail,
   queryStockDetailCount,
   resolveStoreFilter,
-} from "../salesreport-stockreport-helper";import {
+} from "../salesreport-stockreport-helper";
+import {
   getMonthlySummarySchema,
   getStockDetailSchema,
 } from "./stock-report-validation";
@@ -16,9 +17,14 @@ export class StockReportServices {
     { query }: getMonthlySummarySchema,
     user: AuthUser,
   ) {
-    const { storeId, month, year } = query;
+    const { storeId, month, year, productId } = query;
     const resolvedStoreId = resolveStoreFilter(user, storeId);
-    const rows = await queryMonthlyStockSummary(resolvedStoreId, year, month);
+    const rows = await queryMonthlyStockSummary(
+      resolvedStoreId,
+      year,
+      month,
+      productId,
+    );
     return rows.map((row) => ({
       month: row.month,
       productId: row.productId,
@@ -35,7 +41,7 @@ export class StockReportServices {
     const resolvedStoreId = resolveStoreFilter(user, storeId);
     const [rows, countResult] = await Promise.all([
       queryStockDetail(resolvedStoreId, year, month, productId, skip, take),
-      queryStockDetailCount(resolvedStoreId, year, month, productId), 
+      queryStockDetailCount(resolvedStoreId, year, month, productId),
     ]);
     const totalData = Number(countResult[0]?.count ?? 0);
     const meta = createMeta(page, limit, totalData);
