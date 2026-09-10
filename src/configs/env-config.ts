@@ -14,10 +14,11 @@ export const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
 
 // --- Ditambahkan untuk features/auth ---
 export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-export const SMTP_HOST = process.env.SMTP_HOST || "";
-export const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-export const SMTP_USER = process.env.SMTP_USER || "";
-export const SMTP_PASS = process.env.SMTP_PASS || "";
+
+export const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+
+export const RESEND_FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL || "FreshMart <onboarding@freshmart.space>";
 
 // --- Ditambahkan untuk features/address ---
 export const OPENCAGE_API_KEY = process.env.OPENCAGE_API_KEY || "";
