@@ -6,23 +6,14 @@ export default class VoucherValidation {
     body: z
       .object({
         storeId: z.string().uuid("Invalid store id").optional(),
-
         code: z.string().min(1, "Voucher code is required"),
-
         usageType: z.enum(VoucherUsageType),
-
         valueType: z.enum(ValueType),
-
         value: z.number().positive("Value must be greater than 0"),
-
         maxDiscountAmount: z.number().positive().optional(),
-
         minPurchaseAmount: z.number().positive().optional(),
-
         productId: z.string().uuid("Invalid product id").optional(),
-
         expiredAt: z.coerce.date(),
-
         isActive: z.boolean().optional(),
       })
       .refine(
@@ -61,21 +52,13 @@ export default class VoucherValidation {
     body: z
       .object({
         code: z.string().min(1).optional(),
-
         usageType: z.enum(VoucherUsageType).optional(),
-
         valueType: z.enum(ValueType).optional(),
-
         value: z.number().positive().optional(),
-
         maxDiscountAmount: z.number().positive().optional(),
-
         minPurchaseAmount: z.number().positive().optional(),
-
         productId: z.string().uuid("Invalid product id").optional(),
-
         expiredAt: z.coerce.date().optional(),
-
         isActive: z.boolean().optional(),
       })
       .refine(
@@ -114,6 +97,7 @@ export default class VoucherValidation {
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().default(10),
+      storeId: z.string().uuid("Invalid store id").optional(),
       search: z.string().optional(),
       usageType: z.enum(VoucherUsageType).optional(),
       valueType: z.enum(ValueType).optional(),
