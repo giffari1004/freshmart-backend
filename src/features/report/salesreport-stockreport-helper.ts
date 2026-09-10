@@ -57,6 +57,8 @@ export function queryProductReport(
     JOIN "orders" o ON o."id" = oi."orderId"
     JOIN "products" p ON p."id" = oi."productId"
     WHERE o."status" = ${CONFIRMED_STATUS}::"OrderStatus"
+    AND p."deletedAt" IS NULL
+    AND oi."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND o."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM o."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM o."createdAt") = ${month}` : Prisma.empty}
@@ -86,6 +88,8 @@ export function queryCategoryReport(
     JOIN "products" p ON p."id" = oi."productId"
     JOIN "product_categories" pc ON pc."id" = p."categoryId"
     WHERE o."status" = ${CONFIRMED_STATUS}::"OrderStatus"
+    AND p."deletedAt" IS NULL
+    AND oi."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND o."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM o."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM o."createdAt") = ${month}` : Prisma.empty}
@@ -137,6 +141,7 @@ export function queryStockDetail(
       ON p."id" = sp."productId"
     WHERE EXTRACT(YEAR FROM sj."createdAt") = ${year}
       AND EXTRACT(MONTH FROM sj."createdAt") = ${month}
+      AND p."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
       ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
     ORDER BY sj."createdAt" DESC
@@ -158,6 +163,7 @@ export function queryStockDetailCount(
     JOIN "products" p ON p."id" = sp."productId"
     WHERE EXTRACT(YEAR FROM sj."createdAt") = ${year}
     AND EXTRACT(MONTH FROM sj."createdAt") = ${month}
+    AND p."deletedAt" IS NULL
     ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
     ${productId ? Prisma.sql`AND sp."productId" = ${productId}` : Prisma.empty}
   `;
@@ -210,6 +216,7 @@ export function queryMonthlyStockSummary(
     JOIN "products" p
       ON p."id" = sp."productId"
     WHERE 1 = 1
+      AND p."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND sp."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM sj."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM sj."createdAt") = ${month}` : Prisma.empty}
@@ -222,4 +229,4 @@ export function queryMonthlyStockSummary(
       month ASC,
       p."name" ASC
   `;
-} 
+}

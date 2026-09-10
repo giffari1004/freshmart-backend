@@ -50,15 +50,4 @@ export class BogoController {
       meta
     });
   }
-  static async calculate(req: Request, res: Response) {
-    const { body } = validate(BogoValidation.CALCULATE, {
-      body: req.body,
-    });
-    const result = await BogoService.calculate({ body });
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: "BOGO eligibility calculated successfully",
-      data: result,
-    });
-  }
 }

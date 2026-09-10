@@ -133,14 +133,7 @@ export class ProductService {
           deletedAt: null,
         },
       },
-      include: {
-        product: {
-          include: {
-            category: true,
-            images: { orderBy: { isPrimary: "desc" } },
-          },
-        },
-      },
+      include: getProductInclude()
     });
     if (!item) throw new NotFoundError("Product not found");
     return formatProductDetail(item);
