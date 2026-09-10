@@ -58,38 +58,6 @@ export class BogoService {
     });
     return deleteBogo;
   }
-  // ini untuk dipakai feature 3 (said) sebagai logic bogo 
-  static async calculate({ body }: CalculateBogoSchema) {
-    const now = new Date();
-    const bogo = await prisma.discount.findFirst({
-      where: {
-        storeId: body.storeId,
-        productId: body.productId,
-        type: "BUY1GET1",
-        isActive: true,
-        deletedAt: null,
-        startDate: {
-          lte: now,
-        },
-        endDate: {
-          gte: now,
-        },
-      },
-    });
-    if (!bogo) {
-      return {
-        eligible: false,
-        freeQuantity: 0,
-      };
-    }
-    const freeQuantity = Math.floor(body.quantity / 2);
-    return {
-      eligible: freeQuantity > 0,
-      freeQuantity,
-      discountId: bogo.id,
-      productId: body.productId,
-    };
-  }
   static async getAll({ query }: GetAllBogoSchema,user:AuthUser) {
     const {page,limit,storeId,productId} = query
     const {skip, take} = getPagination(page,limit)

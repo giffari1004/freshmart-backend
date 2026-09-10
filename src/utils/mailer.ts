@@ -1,18 +1,13 @@
-import nodemailer from "nodemailer";
 import {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_USER,
-  SMTP_PASS,
   FRONTEND_URL,
+  RESEND_API_KEY,
+  RESEND_FROM_EMAIL,
 } from "../configs/env-config";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: { user: SMTP_USER, pass: SMTP_PASS },
-});
+const resend = new Resend(RESEND_API_KEY);
+
+const FROM_EMAIL = RESEND_FROM_EMAIL;
 
 function baseEmailTemplate({
   heading,
@@ -92,8 +87,8 @@ export class MailerUtil {
   static async sendVerificationEmail(to: string, token: string) {
     const link = `${FRONTEND_URL}/verify-email?token=${token}`;
 
-    await transporter.sendMail({
-      from: `"FreshMart" <${SMTP_USER}>`,
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to,
       subject: "Verifikasi email FreshMart kamu",
       html: baseEmailTemplate({
@@ -111,8 +106,8 @@ export class MailerUtil {
   static async sendResetPasswordEmail(to: string, token: string) {
     const link = `${FRONTEND_URL}/reset-password/confirm?token=${token}`;
 
-    await transporter.sendMail({
-      from: `"FreshMart" <${SMTP_USER}>`,
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to,
       subject: "Reset password FreshMart kamu",
       html: baseEmailTemplate({

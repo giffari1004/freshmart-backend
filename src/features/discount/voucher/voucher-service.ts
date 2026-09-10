@@ -20,10 +20,10 @@ import { AuthUser } from "../../../middlewares/auth-middleware";
 
 export class VoucherService {
   static async getAllVoucher({ query }: getAllVourcherSchema, user: AuthUser) {
-    const { page, limit, search, usageType, valueType, sortBy, sortOrder } =
+    const { page, limit, search, usageType, storeId,valueType, sortBy, sortOrder } =
       query;
     const { skip, take } = getPagination(page, limit);
-    const where = voucherWhere({ user, search, usageType, valueType });
+    const where = voucherWhere({ user, search, usageType, storeId,valueType });
     const [data, totalData] = await Promise.all([
       prisma.voucher.findMany({
         where,

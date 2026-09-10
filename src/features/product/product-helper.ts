@@ -4,6 +4,7 @@ import { BadRequestError } from "../../errors/BadRequestError";
 import { ConflictError } from "../../errors/ConflictError";
 import { NotFoundError } from "../../errors/NotFoundError";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import { getProductInclude } from "./product-constant";
 
 export function whereProduct(
   search?: string,
@@ -60,7 +61,7 @@ export function whereStoreProduct(
 }
 export function formatProductDetail(
   item: Prisma.StoreProductGetPayload<{
-    include: { product: { include: { category: true; images: true } } };
+    include:  ReturnType<typeof getProductInclude> ;
   }>,
 ) {
   const stock = item.stockQuantity - item.reservedStock;
@@ -68,6 +69,7 @@ export function formatProductDetail(
     id: item.product.id,
     storeProductId: item.id,
     name: item.product.name,
+    discounts: item.product.discounts ,
     description: item.product.description,
     category: item.product.category.name,
     price: item.priceOverride ?? item.product.basePrice,
