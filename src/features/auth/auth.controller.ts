@@ -42,11 +42,19 @@ export class AuthController {
 
   static async login(req: Request, res: Response) {
     const { body } = validate(AuthValidation.LOGIN, { body: req.body });
-    const { user, accessToken } = await AuthService.login({ body });
+    const result = await AuthService.login({ body });
+
+    res.cookie("token", result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Login successful",
-      data: { user, accessToken },
+      data: result,
     });
   }
 
@@ -72,5 +80,14 @@ export class AuthController {
       message: result.message,
       data: null,
     });
+  }
+
+  static async logout(req: Request, res: Response) {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
+    res.status(StatusCodes.OK).json({ success: true, message: "Logged out" });
   }
 }

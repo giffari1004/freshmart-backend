@@ -3,7 +3,13 @@ import { validate } from "../../validate/validate";
 import { SocialLoginValidation } from "./social-login.validation";
 import { SocialLoginService } from "./social-login.service";
 import { FRONTEND_URL } from "../../configs/env-config";
-import { error } from "console";
+
+const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+}
 
 export class SocialLoginController {
   static redirectToGoogle(_req: Request, res: Response) {
@@ -22,8 +28,11 @@ export class SocialLoginController {
       const { accessToken } = await SocialLoginService.handleGoogleCallback({
         query,
       });
+
+      res.cookie("token", accessToken, AUTH_COOKIE_OPTIONS);
+
       return res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
-    } catch {
+    } catch (error) {
       console.error("Google OAuth callback failed:", error);
       return res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
     }
@@ -45,8 +54,11 @@ export class SocialLoginController {
       const { accessToken } = await SocialLoginService.handleFacebookCallback({
         query,
       });
+
+      res.cookie("token", accessToken, AUTH_COOKIE_OPTIONS);
+
       return res.redirect(`${FRONTEND_URL}/auth/callback?token=${accessToken}`);
-    } catch {
+    } catch (error) {
       console.error("Facebook OAuth callback failed:", error);
       return res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
     }
