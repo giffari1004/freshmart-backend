@@ -8,6 +8,7 @@ import {
   validateConfirmationStatus,
 } from "../helper/order.cancellation.helper";
 import { buildOrderItems } from "../helper/order.helper";
+import { calculateOrderDiscount } from "../helper/order.discount.helper";
 import { buildOrderTransactionData } from "../helper/order.transaction-data.helper";
 import { OrderRepository } from "../repository/order.repository";
 import type { CreateOrderRequest, OrderListQuery } from "../order.type";
@@ -88,10 +89,14 @@ export class OrderService {
     const shipping = await this.getShipping(
       payload.shippingMethodId, selection.store.id, address.city,
     );
-    const discount = await this.getDiscount(userId, payload, cart);
+    const voucher = await this.getDiscount(userId, payload, cart, Number(shipping.cost));
     const items = buildOrderItems(cart.items);
+    const discount = await calculateOrderDiscount(
+      selection.store.id, items, voucher.amount, Number(shipping.cost),
+    );
     return buildOrderTransactionData(
-      userId, payload, selection.store, address, shipping, items, discount.amount,
+      userId, payload, selection.store, address, shipping,
+      discount.items, discount.amount,
     );
   }
 
@@ -154,9 +159,14 @@ export class OrderService {
     userId: string,
     payload: CreateOrderRequest,
     cart: OrderCart,
+    shippingCost: number,
   ) {
     return calculateDiscount(
-      this.orderRepository, userId, payload.userVoucherId, cart.items,
+      this.orderRepository,
+      userId,
+      payload.userVoucherId,
+      cart.items,
+      shippingCost,
     );
   }
 }
@@ -167,3 +177,4 @@ function toRequestedStoreItem(item: OrderCart["items"][number]) {
     quantity: item.quantity,
   };
 }
+

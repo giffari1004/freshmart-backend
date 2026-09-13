@@ -27,6 +27,6 @@ export function calculateDiscountAmount(
       ? subtotal * (Number(value) / 100)
       : Number(value);
   const capped =
-    maxDiscountAmount === null ? raw : Math.min(raw, Number(maxDiscountAmount));
+    maxDiscountAmount == null ? raw : Math.min(raw, Number(maxDiscountAmount));
   return Number(Math.min(capped, subtotal).toFixed(2));
 }

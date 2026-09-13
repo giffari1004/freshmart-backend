@@ -15,7 +15,14 @@ export function buildOrderItems(items: OrderCartItem[]): OrderItemCalculation[] 
 
 function toOrderItem(item: OrderCartItem): OrderItemCalculation {
   const unitPrice = Number(item.storeProduct.priceOverride ?? item.storeProduct.product.basePrice);
-  return { storeProductId: item.storeProduct.id, productId: item.storeProduct.productId, productName: item.storeProduct.product.name, unitPrice, quantity: item.quantity, subtotal: unitPrice * item.quantity };
+  return {
+    storeProductId: item.storeProduct.id,
+    productId: item.storeProduct.productId,
+    productName: item.storeProduct.product.name,
+    unitPrice,
+    quantity: item.quantity,
+    subtotal: unitPrice * item.quantity,
+  };
 }
 
 export function calculateOrderSubtotal(items: OrderItemCalculation[]): number {
