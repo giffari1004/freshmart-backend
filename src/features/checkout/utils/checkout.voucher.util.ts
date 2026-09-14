@@ -59,7 +59,7 @@ export async function calculateDiscount(
 }
 
 function emptyDiscount(): CheckoutDiscount {
-  return { userVoucherId: null, voucherCode: null, amount: 0 };
+  return { userVoucherId: null, voucherCode: null, amount: 0, voucherAmount: 0, automatic: [] };
 }
 
 function validateUserVoucher(userVoucher: UserVoucherWithVoucher | null): void {
@@ -95,7 +95,7 @@ function buildDiscount(
     voucher.value,
     voucher.maxDiscountAmount,
   );
-  return { userVoucherId: userVoucher.id, voucherCode: voucher.code, amount };
+  return { userVoucherId: userVoucher.id, voucherCode: voucher.code, amount, voucherAmount: amount, automatic: [] };
 }
 
 function getDiscountBase(

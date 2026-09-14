@@ -1,56 +1,50 @@
+import { calculateDiscount } from "../../checkout/utils/checkout.voucher.util";
+import { calculateVoucherSubtotal } from "../../checkout/utils/checkout.voucher.calculation";
 import {
-  applyBogoBonus,
-  calculateAutomaticDiscount,
   AutomaticDiscountItem,
-} from "../../discount/discount-calculation";
-import {
-  OrderItemCalculation,
-  calculateOrderSubtotal,
-} from "./order.helper";
+  calculateAutomaticDiscountDetails,
+  capAutomaticDiscountDetails,
+} from "../../checkout/utils/automatic-discount-details.util";
+import { OrderItemCalculation, calculateOrderSubtotal } from "./order.helper";
+import type { OrderRepository } from "../repository/order.repository";
+import { OrderDiscountUsage, toDiscountUsages } from "./order.discount-usage.helper";
 
 export interface OrderDiscountResult {
   items: OrderItemCalculation[];
   amount: number;
+  voucherAmount: number;
+  usages: OrderDiscountUsage[];
 }
 
 export async function calculateOrderDiscount(
+  repository: Pick<OrderRepository, "getUserVoucher">,
+  userId: string,
+  userVoucherId: string | undefined,
   storeId: string,
   items: OrderItemCalculation[],
-  voucherAmount: number,
   shippingCost: number,
 ): Promise<OrderDiscountResult> {
-  const discountItems = items.map(toDiscountItem);
-  const subtotal = calculateOrderSubtotal(items);
-
-  const automatic = await calculateAutomaticDiscount(
+  const voucher = await calculateDiscount(
+    repository,
+    userId,
+    userVoucherId,
+    toVoucherItems(items),
+    shippingCost,
+  );
+  const automatic = await calculateAutomaticDiscountDetails(
     storeId,
-    discountItems,
-    subtotal,
+    items.map(toAutomaticItem),
+    calculateOrderSubtotal(items),
   );
-
-  const bonusItems = await applyBogoBonus(
-    storeId,
-    discountItems,
-  );
-
-  const finalItems = applyBonusQuantities(
-    items,
-    bonusItems,
-  );
-
-  return {
-    items: finalItems,
-    amount: capDiscount(
-      voucherAmount + automatic,
-      finalItems,
-      shippingCost,
-    ),
-  };
+  const maxAutomatic =
+    calculateOrderSubtotal(items) + shippingCost - voucher.amount;
+  const appliedAutomatic = capAutomaticDiscountDetails(automatic, maxAutomatic);
+  const usages = toDiscountUsages(appliedAutomatic);
+  const amount = voucher.amount + usages.reduce((sum, item) => sum + item.amountDeducted, 0);
+  return { items, amount, voucherAmount: voucher.amount, usages };
 }
 
-function toDiscountItem(
-  item: OrderItemCalculation,
-): AutomaticDiscountItem {
+function toAutomaticItem(item: OrderItemCalculation): AutomaticDiscountItem {
   return {
     productId: item.productId,
     unitPrice: item.unitPrice,
@@ -58,37 +52,12 @@ function toDiscountItem(
   };
 }
 
-function applyBonusQuantities(
-  items: OrderItemCalculation[],
-  bonusItems: AutomaticDiscountItem[],
-) {
-  const quantities = new Map(
-    bonusItems.map((item) => [
-      item.productId,
-      item.quantity,
-    ]),
-  );
-
-  return items.map((item) => {
-    const quantity =
-      quantities.get(item.productId) ??
-      item.quantity;
-
-    return {
-      ...item,
-      quantity,
-      subtotal: item.unitPrice * quantity,
-    };
-  });
-}
-
-function capDiscount(
-  amount: number,
-  items: OrderItemCalculation[],
-  shippingCost: number,
-) {
-  return Math.min(
-    amount,
-    calculateOrderSubtotal(items) + shippingCost,
-  );
+function toVoucherItems(items: OrderItemCalculation[]) {
+  return items.map((item) => ({
+    quantity: item.quantity,
+    storeProduct: {
+      priceOverride: item.unitPrice,
+      product: { id: item.productId, basePrice: item.unitPrice },
+    },
+  }));
 }

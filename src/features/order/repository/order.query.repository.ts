@@ -26,10 +26,6 @@ const CART_INCLUDE = {
   },
 } as const;
 
-type OrderDetailRecord = Prisma.OrderGetPayload<{
-  include: { items: true; payments: true };
-}>;
-
 export class OrderQueryRepository {
   getCartForOrder(userId: string) {
     return prisma.cart.findFirst({

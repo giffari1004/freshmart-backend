@@ -13,10 +13,8 @@ import {
   getAddress,
   getShipping,
 } from "../helper/checkout.helper";
-import {
-  applyCheckoutBogoBonus,
-  calculateCheckoutDiscount,
-} from "../utils/checkout.discount.util";
+import { calculateCheckoutDiscount } from "../utils/checkout.discount.util";
+import { mapCheckoutVoucher } from "../helper/checkout.voucher-option.helper";
 import {
   getShippingOptions as fetchShippingOptions,
 } from "../../../integrations/rajaongkir-client";
@@ -60,9 +58,7 @@ export class CheckoutService {
       selectedCart,
       Number(shipping.cost),
     );
-    const previewCart = await applyCheckoutBogoBonus(selectedCart);
-
-    return CheckoutMapper.toCheckoutPreview(previewCart, {
+    return CheckoutMapper.toCheckoutPreview(selectedCart, {
       address: CheckoutMapper.toAddress(address),
       store: CheckoutMapper.toStore(
         selection.store,
@@ -73,6 +69,10 @@ export class CheckoutService {
     });
   }
 
+  async getVouchers(userId: string, storeId?: string) {
+    const vouchers = await this.checkoutRepository.getUserVouchers(userId, storeId);
+    return vouchers.map(mapCheckoutVoucher);
+  }
   async getShippingOptions(
     userId: string,
     addressId: string,
@@ -94,7 +94,6 @@ export class CheckoutService {
       options,
     );
   }
-
   async getCheckoutAddresses(
     userId: string,
   ): Promise<CheckoutOptionAddress[]> {

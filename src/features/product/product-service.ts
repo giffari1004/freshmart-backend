@@ -91,10 +91,14 @@ export class ProductService {
     return updateProductAcc;
   }
   static async delete({ params }: deleteProductSchema) {
-    await findProductOrError(params.id);
+    const product = await findProductOrError(params.id);
     const deleteProductAcc = await prisma.product.update({
       where: { id: params.id },
-      data: { deletedAt: new Date() },
+      data: {
+        deletedAt: new Date(),
+        slug: `${params.id}-deleted-${Date.now()}`,
+        name: `${product.name}-deleted-${Date.now()}`,
+      },
     });
     return deleteProductAcc;
   }
@@ -133,7 +137,7 @@ export class ProductService {
           deletedAt: null,
         },
       },
-      include: getProductInclude()
+      include: getProductInclude(),
     });
     if (!item) throw new NotFoundError("Product not found");
     return formatProductDetail(item);

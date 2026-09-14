@@ -1,6 +1,7 @@
 import { Prisma } from "../../../generated/prisma";
 
 import type { OrderItemCalculation } from "./helper/order.helper";
+import type { OrderDiscountUsage } from "./helper/order.discount-usage.helper";
 import {
   clearCartItems,
   consumeUserVoucher,
@@ -26,10 +27,12 @@ export interface CreateOrderTransactionData {
   shippingMethodId: string;
   subtotal: number;
   discountAmount: number;
+  voucherAmount: number;
   shippingCost: number;
   totalAmount: number;
   userVoucherId?: string;
   items: OrderItemCalculation[];
+  discountUsages: OrderDiscountUsage[];
 }
 
 export async function runCreateOrderTransaction(
@@ -56,6 +59,7 @@ async function createOrderDetails(
   await createInitialStatusHistory(tx, orderId, data.userId);
   await createOrderItems(tx, orderId, data.items);
   await reserveStock(tx, orderId, data.items);
+  await createDiscountUsages(tx, data.userId, orderId, data.discountUsages);
   await consumeUserVoucher(tx, data);
   await createOrderVoucher(tx, orderId, data);
 }
@@ -74,6 +78,23 @@ async function createPaymentAndClearCart(
     deadline,
   );
   await clearCartItems(tx, data.userId);
+}
+
+async function createDiscountUsages(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  orderId: string,
+  usages: OrderDiscountUsage[],
+) {
+  if (!usages.length) return;
+  await tx.discountUsage.createMany({
+    data: usages.map((usage) => ({
+      discountId: usage.discountId,
+      userId,
+      orderId,
+      amountDeducted: usage.amountDeducted,
+    })),
+  });
 }
 
 async function reserveStock(

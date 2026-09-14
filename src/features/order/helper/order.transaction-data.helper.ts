@@ -1,6 +1,7 @@
 import type { CreateOrderRequest } from "../order.type";
 import type { CreateOrderTransactionData } from "../order.transaction";
 import type { OrderItemCalculation } from "./order.helper";
+import type { OrderDiscountUsage } from "./order.discount-usage.helper";
 
 interface StoreData {
   id: string;
@@ -29,6 +30,8 @@ export function buildOrderTransactionData(
   shipping: ShippingData,
   items: OrderItemCalculation[],
   discountAmount: number,
+  voucherAmount: number,
+  discountUsages: OrderDiscountUsage[],
 ): CreateOrderTransactionData {
   return {
     userId,
@@ -36,8 +39,10 @@ export function buildOrderTransactionData(
     ...mapAddress(address),
     shippingMethodId: shipping.id,
     ...mapPricing(items, discountAmount, shipping.cost),
+    voucherAmount,
     userVoucherId: payload.userVoucherId,
     items,
+    discountUsages,
   };
 }
 

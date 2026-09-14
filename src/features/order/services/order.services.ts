@@ -1,7 +1,6 @@
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { CHECKOUT_MESSAGE } from "../../checkout/constants/checkout.constant";
 import { CheckoutStoreSelectionService } from "../../checkout/services/checkout.store-selection.service";
-import { calculateDiscount } from "../../checkout/utils/checkout.voucher.util";
 import { OrderMapper } from "../mappers/order.mapper";
 import {
   validateCancellationStatus,
@@ -89,10 +88,14 @@ export class OrderService {
     const shipping = await this.getShipping(
       payload.shippingMethodId, selection.store.id, address.city,
     );
-    const voucher = await this.getDiscount(userId, payload, cart, Number(shipping.cost));
     const items = buildOrderItems(cart.items);
     const discount = await calculateOrderDiscount(
-      selection.store.id, items, voucher.amount, Number(shipping.cost),
+      this.orderRepository,
+      userId,
+      payload.userVoucherId,
+      selection.store.id,
+      items,
+      Number(shipping.cost),
     );
     // PERBAIKAN: OrderDiscountResult tidak menyediakan usages.
     return buildOrderTransactionData(
@@ -103,6 +106,8 @@ export class OrderService {
       shipping,
       discount.items,
       discount.amount,
+      discount.voucherAmount,
+      discount.usages,
     );
   }
 
@@ -161,20 +166,7 @@ export class OrderService {
     return shipping;
   }
 
-  private getDiscount(
-    userId: string,
-    payload: CreateOrderRequest,
-    cart: OrderCart,
-    shippingCost: number,
-  ) {
-    return calculateDiscount(
-      this.orderRepository,
-      userId,
-      payload.userVoucherId,
-      cart.items,
-      shippingCost,
-    );
-  }
+
 }
 
 function toRequestedStoreItem(item: OrderCart["items"][number]) {

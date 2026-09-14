@@ -10,15 +10,32 @@ export async function createOrder(
   paymentDeadline: Date,
 ) {
   // PERBAIKAN: hanya keluarkan field yang bukan kolom Order.
-  const { items, userVoucherId, ...orderData } = data;
   return tx.order.create({
     data: {
-      ...orderData,
+      ...toOrderCreateData(data),
       orderNumber: `ORD-${Date.now()}`,
       status: "WAITING_PAYMENT",
       paymentDeadline,
     },
   });
+}
+
+function toOrderCreateData(data: CreateOrderTransactionData) {
+  return {
+    userId: data.userId,
+    storeId: data.storeId,
+    recipientName: data.recipientName,
+    recipientPhone: data.recipientPhone,
+    province: data.province,
+    city: data.city,
+    district: data.district,
+    fullAddress: data.fullAddress,
+    shippingMethodId: data.shippingMethodId,
+    subtotal: data.subtotal,
+    discountAmount: data.discountAmount,
+    shippingCost: data.shippingCost,
+    totalAmount: data.totalAmount,
+  };
 }
 
 export async function createInitialStatusHistory(
@@ -88,7 +105,7 @@ export async function createOrderVoucher(
     data: {
       orderId,
       userVoucherId: data.userVoucherId,
-      amountDeducted: data.discountAmount,
+      amountDeducted: data.voucherAmount,
     },
   });
 }

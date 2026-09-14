@@ -11,7 +11,6 @@ interface PendingPayment {
   id: string;
   status: string;
 }
-
 const CUSTOMER_CANCEL_STATUS = "WAITING_PAYMENT" as const;
 
 export async function cancelOrderTransaction(
