@@ -95,8 +95,17 @@ function calculateProductDetail(
     (discount) => discount.productId === item.productId,
   );
   const bogo = applicable.find((discount) => discount.type === "BUY1GET1");
-  if (bogo && item.quantity === 1) {
-    return [detail(bogo.id, "BUY1GET1", item.productId, item.unitPrice, 1)];
+  const freeQuantity = bogo ? item.quantity : 0;
+  if (bogo && freeQuantity > 0) {
+    return [
+      detail(
+        bogo.id,
+        "BUY1GET1",
+        item.productId,
+        freeQuantity * item.unitPrice,
+        freeQuantity,
+      ),
+    ];
   }
   return calculateDirectDetail(item, applicable);
 }

@@ -14,6 +14,7 @@ import {
   getShipping,
 } from "../helper/checkout.helper";
 import { calculateCheckoutDiscount } from "../utils/checkout.discount.util";
+import { getPhysicalCartWeight } from "../utils/checkout.bogo-weight.util";
 import { mapCheckoutVoucher } from "../helper/checkout.voucher-option.helper";
 import {
   getShippingOptions as fetchShippingOptions,
@@ -80,7 +81,7 @@ export class CheckoutService {
     const cart = await this.getCart(userId);
     const address = await this.getAddress(userId, addressId);
     const selection = await this.selectStore(cart, address);
-    const weight = this.getTotalWeight(cart);
+    const weight = await getPhysicalCartWeight(cart, selection.store.id);
 
     const options = await fetchShippingOptions(
       selection.store.rajaOngkirCityId,
@@ -159,14 +160,6 @@ export class CheckoutService {
     );
   }
 
-  private getTotalWeight(cart: CartRecord): number {
-    return cart.items.reduce(
-      (total, item) =>
-        total +
-        item.storeProduct.product.weight * item.quantity,
-      0,
-    );
-  }
 
   private getShipping(
     payload: CheckoutPreviewRequest,

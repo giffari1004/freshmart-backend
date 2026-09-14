@@ -10,6 +10,7 @@ import {
   CheckoutStore,
 } from "../checkout.types";
 import { toCheckoutItem } from "./checkout.item.mapper";
+import { applyBogoFreeQuantity } from "../utils/bogo-quantity.util";
 
 type CheckoutCart = Prisma.CartGetPayload<{
   include: {
@@ -117,8 +118,13 @@ export class CheckoutMapper {
     data: CheckoutPreviewData,
   ): CheckoutPreviewResponse {
     const items = cart.items.map(toCheckoutItem);
+    const physicalItems = applyBogoFreeQuantity(items, data.discount.automatic)
+      .map((item, index) => ({
+        ...item,
+        weight: getUnitWeight(items[index]!) * item.quantity,
+      }));
 
-    return buildPreview(items, data);
+    return buildPreview(physicalItems, data);
   }
 }
 
@@ -152,4 +158,8 @@ function sum(
     (total, item) => total + item[key],
     0,
   );
+}
+
+function getUnitWeight(item: CheckoutItem) {
+  return item.quantity > 0 ? item.weight / item.quantity : 0;
 }
