@@ -10,6 +10,7 @@ import type {
   getStoreByIdSchema,
   deleteStoreSchema,
   assignStoreAdminSchema,
+  unassignStoreAdminSchema,
 } from "./store.validation";
 
 export class StoreService {
@@ -125,20 +126,22 @@ export class StoreService {
     });
   }
 
-  /**
-   * "Assign Store Admin" — bagian eksplisit dari requirement Store
-   * Management (Feature 1), sengaja dipisah dari CRUD akun store admin
-   * (Feature 2, `features/admin`). Endpoint ini jadi satu-satunya jalur
-   * resmi untuk mengubah `storeId` milik seorang store admin.
-   */
   static async assignAdmin({ params, body }: assignStoreAdminSchema) {
-    const store = await prisma.store.findUnique({ where: { id: params.id } });
-    if (!store || store.deletedAt) throw new NotFoundError("Store not found");
+    const store = await prisma.store.findUnique({
+      where: { id: params.id },
+    });
+
+    if (!store || store.deletedAt) {
+      throw new NotFoundError("Store not found");
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: body.userId },
     });
-    if (!user || user.deletedAt) throw new NotFoundError("User not found");
+
+    if (!user || user.deletedAt) {
+      throw new NotFoundError("User not found");
+    }
 
     if (user.role !== "STORE_ADMIN") {
       throw new BadRequestError(
@@ -146,10 +149,53 @@ export class StoreService {
       );
     }
 
-    return prisma.user.update({
-      where: { id: body.userId },
-      data: { storeId: params.id },
-      select: { id: true, name: true, email: true, storeId: true, role: true },
+    return prisma.$transaction(async (tx) => {
+      await tx.user.updateMany({
+        where: {
+          storeId: params.id,
+          role: "STORE_ADMIN",
+        },
+        data: { storeId: null },
+      });
+
+      return tx.user.update({
+        where: { id: body.userId },
+        data: { storeId: params.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          storeId: true,
+          role: true,
+        },
+      });
     });
+  }
+
+  static async unassignAdmin({ params }: unassignStoreAdminSchema) {
+    const store = await prisma.store.findUnique({
+      where: { id: params.id },
+    });
+
+    if (!store || store.deletedAt) {
+      throw new NotFoundError("Store not found");
+    }
+
+    const result = await prisma.user.updateMany({
+      where: {
+        storeId: params.id,
+        role: "STORE_ADMIN",
+        deletedAt: null,
+      },
+      data: {
+        storeId: null,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundError("No store admin assigned");
+    }
+
+    return { removedCount: result.count };
   }
 }

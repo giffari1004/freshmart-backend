@@ -16,3 +16,4 @@ storeRoute.post("/", StoreController.create);
 storeRoute.patch("/:id", StoreController.update);
 storeRoute.delete("/:id", StoreController.delete);
 storeRoute.patch("/:id/assign-admin", StoreController.assignAdmin);
+storeRoute.delete("/:id/admin", StoreController.unassignAdmin);
