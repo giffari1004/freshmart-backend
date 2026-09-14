@@ -8,6 +8,7 @@ import {
 } from "../helper/order.cancellation.helper";
 import { buildOrderItems } from "../helper/order.helper";
 import { calculateOrderDiscount } from "../helper/order.discount.helper";
+import { applyBogoFreeQuantity } from "../../checkout/utils/bogo-quantity.util";
 import { buildOrderTransactionData } from "../helper/order.transaction-data.helper";
 import { OrderRepository } from "../repository/order.repository";
 import type { CreateOrderRequest, OrderListQuery } from "../order.type";
@@ -97,14 +98,17 @@ export class OrderService {
       items,
       Number(shipping.cost),
     );
-    // PERBAIKAN: OrderDiscountResult tidak menyediakan usages.
+    const physicalItems = applyBogoFreeQuantity(
+      discount.items,
+      discount.automatic,
+    );
     return buildOrderTransactionData(
       userId,
       payload,
       selection.store,
       address,
       shipping,
-      discount.items,
+      physicalItems,
       discount.amount,
       discount.voucherAmount,
       discount.usages,

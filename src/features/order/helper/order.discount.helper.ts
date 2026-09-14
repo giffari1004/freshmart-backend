@@ -14,6 +14,7 @@ export interface OrderDiscountResult {
   amount: number;
   voucherAmount: number;
   usages: OrderDiscountUsage[];
+  automatic: Awaited<ReturnType<typeof calculateAutomaticDiscountDetails>>;
 }
 
 export async function calculateOrderDiscount(
@@ -41,7 +42,13 @@ export async function calculateOrderDiscount(
   const appliedAutomatic = capAutomaticDiscountDetails(automatic, maxAutomatic);
   const usages = toDiscountUsages(appliedAutomatic);
   const amount = voucher.amount + usages.reduce((sum, item) => sum + item.amountDeducted, 0);
-  return { items, amount, voucherAmount: voucher.amount, usages };
+  return {
+    items,
+    amount,
+    voucherAmount: voucher.amount,
+    usages,
+    automatic: appliedAutomatic,
+  };
 }
 
 function toAutomaticItem(item: OrderItemCalculation): AutomaticDiscountItem {
