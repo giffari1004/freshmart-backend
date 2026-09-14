@@ -58,7 +58,6 @@ export function queryProductReport(
     JOIN "products" p ON p."id" = oi."productId"
     WHERE o."status" = ${CONFIRMED_STATUS}::"OrderStatus"
     AND p."deletedAt" IS NULL
-    AND oi."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND o."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM o."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM o."createdAt") = ${month}` : Prisma.empty}
@@ -89,7 +88,6 @@ export function queryCategoryReport(
     JOIN "product_categories" pc ON pc."id" = p."categoryId"
     WHERE o."status" = ${CONFIRMED_STATUS}::"OrderStatus"
     AND p."deletedAt" IS NULL
-    AND oi."deletedAt" IS NULL
       ${storeId ? Prisma.sql`AND o."storeId" = ${storeId}` : Prisma.empty}
       ${year ? Prisma.sql`AND EXTRACT(YEAR FROM o."createdAt") = ${year}` : Prisma.empty}
       ${month ? Prisma.sql`AND EXTRACT(MONTH FROM o."createdAt") = ${month}` : Prisma.empty}
