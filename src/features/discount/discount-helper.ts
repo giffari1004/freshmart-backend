@@ -71,9 +71,12 @@ export function discountWhere({
     type,
     deletedAt: null,
     isActive: true,
-    product: {
-      deletedAt:null
-    },
+    OR: [
+      {productId:null},
+      {product: {
+        deletedAt:null
+      }}
+    ],
     ...(user.role === "STORE_ADMIN"
       ? { storeId: user.storeId! }
       : storeId
