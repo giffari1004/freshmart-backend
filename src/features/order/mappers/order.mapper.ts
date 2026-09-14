@@ -5,7 +5,6 @@ import {
   OrderListItemResponse,
   OrderStatusHistoryResponse,
 } from "../order.type";
-
 interface OrderMapperInput {
   id: string;
   orderNumber: string;

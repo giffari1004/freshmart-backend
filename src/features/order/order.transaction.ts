@@ -1,5 +1,6 @@
 import { Prisma } from "../../../generated/prisma";
-import { OrderItemCalculation } from "./helper/order.helper";
+
+import type { OrderItemCalculation } from "./helper/order.helper";
 import {
   clearCartItems,
   consumeUserVoucher,
@@ -8,11 +9,11 @@ import {
   createOrderItems,
   createOrderVoucher,
   createPayment,
-  createReserveJournal,
   getCreatedOrder,
   reserveStockItem,
 } from "./order.transaction.helper";
 
+// PERBAIKAN: data transaction hanya berisi field yang benar-benar dipakai Order.
 export interface CreateOrderTransactionData {
   userId: string;
   storeId: string;
@@ -35,16 +36,44 @@ export async function runCreateOrderTransaction(
   tx: Prisma.TransactionClient,
   data: CreateOrderTransactionData,
 ) {
-  const deadline = new Date(Date.now() + 60 * 60 * 1000);
+  const deadline = createPaymentDeadline();
+  // PERBAIKAN: usage discount tidak lagi dipaksakan ke Feature 3.
   const order = await createOrder(tx, data, deadline);
-  await createInitialStatusHistory(tx, order.id, data.userId);
-  await createOrderItems(tx, order.id, data.items);
-  await reserveStock(tx, order.id, data.items);
-  await consumeUserVoucher(tx, data);
-  await createOrderVoucher(tx, order.id, data);
-  await createPayment(tx, order.id, order.orderNumber, data.totalAmount, deadline);
-  await clearCartItems(tx, data.userId);
+  await createOrderDetails(tx, data, order.id);
+  await createPaymentAndClearCart(tx, data, order, deadline);
   return getCreatedOrder(tx, order.id);
+}
+
+function createPaymentDeadline() {
+  return new Date(Date.now() + 60 * 60 * 1000);
+}
+
+async function createOrderDetails(
+  tx: Prisma.TransactionClient,
+  data: CreateOrderTransactionData,
+  orderId: string,
+) {
+  await createInitialStatusHistory(tx, orderId, data.userId);
+  await createOrderItems(tx, orderId, data.items);
+  await reserveStock(tx, orderId, data.items);
+  await consumeUserVoucher(tx, data);
+  await createOrderVoucher(tx, orderId, data);
+}
+
+async function createPaymentAndClearCart(
+  tx: Prisma.TransactionClient,
+  data: CreateOrderTransactionData,
+  order: { id: string; orderNumber: string },
+  deadline: Date,
+) {
+  await createPayment(
+    tx,
+    order.id,
+    order.orderNumber,
+    data.totalAmount,
+    deadline,
+  );
+  await clearCartItems(tx, data.userId);
 }
 
 async function reserveStock(

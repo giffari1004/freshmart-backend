@@ -2,12 +2,14 @@ import { Prisma } from "../../../generated/prisma";
 import { BadRequestError } from "../../errors/BadRequestError";
 import type { CreateOrderTransactionData } from "./order.transaction";
 import { OrderItemCalculation } from "./helper/order.helper";
+export { reserveStockItem } from "./order.transaction.stock.helper";
 
 export async function createOrder(
   tx: Prisma.TransactionClient,
   data: CreateOrderTransactionData,
   paymentDeadline: Date,
 ) {
+  // PERBAIKAN: hanya keluarkan field yang bukan kolom Order.
   const { items, userVoucherId, ...orderData } = data;
   return tx.order.create({
     data: {
@@ -39,7 +41,9 @@ export async function createOrderItems(
   orderId: string,
   items: OrderItemCalculation[],
 ) {
-  await tx.orderItem.createMany({ data: items.map((item) => toOrderItem(orderId, item)) });
+  await tx.orderItem.createMany({
+    data: items.map((item) => toOrderItem(orderId, item)),
+  });
 }
 
 function toOrderItem(orderId: string, item: OrderItemCalculation) {
@@ -53,66 +57,25 @@ function toOrderItem(orderId: string, item: OrderItemCalculation) {
   };
 }
 
-export async function reserveStockItem(
-  tx: Prisma.TransactionClient,
-  orderId: string,
-  item: OrderItemCalculation,
-) {
-  const stock = await updateReservedStock(tx, item);
-  if (!stock) throw new BadRequestError(`Insufficient stock for product ${item.productName}`);
-  await createReserveJournal(tx, orderId, item, stock.stockQuantity);
-}
-
-async function updateReservedStock(
-  tx: Prisma.TransactionClient,
-  item: OrderItemCalculation,
-) {
-  const rows = await tx.$queryRaw<
-    { stockQuantity: number; reservedStock: number }[]
-  >`
-    UPDATE "store_products"
-    SET "reservedStock" = "reservedStock" + ${item.quantity}
-    WHERE "id" = ${item.storeProductId}
-      AND ("stockQuantity" - "reservedStock") >= ${item.quantity}
-    RETURNING "stockQuantity", "reservedStock"
-  `;
-  return rows[0];
-}
-
-export async function createReserveJournal(
-  tx: Prisma.TransactionClient,
-  orderId: string,
-  item: OrderItemCalculation,
-  stockQuantity: number,
-) {
-  await tx.stockJournal.create({
-    data: buildReserveJournalData(orderId, item, stockQuantity),
-  });
-}
-
-function buildReserveJournalData(orderId: string, item: OrderItemCalculation, stockQuantity: number) {
-  return {
-    storeProductId: item.storeProductId,
-    type: "RESERVE" as const,
-    quantity: item.quantity,
-    beforeStock: stockQuantity,
-    afterStock: stockQuantity,
-    referenceType: "ORDER" as const,
-    referenceId: orderId,
-    notes: "Stock reserved for order",
-  };
-}
-
 export async function consumeUserVoucher(
   tx: Prisma.TransactionClient,
   data: CreateOrderTransactionData,
 ) {
   if (!data.userVoucherId) return;
   const updated = await tx.userVoucher.updateMany({
-    where: { id: data.userVoucherId, userId: data.userId, isUsed: false },
+    where: {
+      id: data.userVoucherId,
+      userId: data.userId,
+      isUsed: false,
+    },
     data: { isUsed: true },
   });
-  if (!updated.count) throw new BadRequestError("Voucher is already used or unavailable");
+
+  if (!updated.count) {
+    throw new BadRequestError(
+      "Voucher is already used or unavailable",
+    );
+  }
 }
 
 export async function createOrderVoucher(
@@ -138,7 +101,12 @@ export async function createPayment(
   paymentDeadline: Date,
 ) {
   await tx.payment.create({
-    data: buildPaymentData(orderId, orderNumber, amount, paymentDeadline),
+    data: buildPaymentData(
+      orderId,
+      orderNumber,
+      amount,
+      paymentDeadline,
+    ),
   });
 }
 
@@ -162,7 +130,9 @@ export async function clearCartItems(
   tx: Prisma.TransactionClient,
   userId: string,
 ) {
-  await tx.cartItem.deleteMany({ where: { cart: { userId } } });
+  await tx.cartItem.deleteMany({
+    where: { cart: { userId } },
+  });
 }
 
 export async function getCreatedOrder(
@@ -171,6 +141,10 @@ export async function getCreatedOrder(
 ) {
   return tx.order.findUniqueOrThrow({
     where: { id: orderId },
-    include: { items: true, orderVouchers: true, payments: true },
+    include: {
+      items: true,
+      orderVouchers: true,
+      payments: true,
+    },
   });
 }

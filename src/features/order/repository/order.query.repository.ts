@@ -67,23 +67,19 @@ export class OrderQueryRepository {
   }
 
   async getOrdersByUser(userId: string, query: OrderListQuery) {
+    // PERBAIKAN: pagination/query execution dipindahkan ke helper.
     const where = buildOrderListWhere(userId, query);
-    const skip = (query.page - 1) * query.limit;
-    const [orders, totalItems] = await prisma.$transaction([
-      prisma.order.findMany({
-        where,
-        skip,
-        take: query.limit,
-        orderBy: [
-          { [query.sortBy]: query.sortOrder },
-          { id: "asc" },
-        ],
-        select: ORDER_LIST_SELECT,
-      }),
-      prisma.order.count({ where }),
-    ]);
+    const [orders, totalItems] = await fetchOrderPage(
+      where,
+      query,
+    );
 
-    return { orders, totalItems, page: query.page, limit: query.limit };
+    return {
+      orders,
+      totalItems,
+      page: query.page,
+      limit: query.limit,
+    };
   }
 
   getOrderForCancellation(orderId: string, userId: string) {
@@ -95,29 +91,76 @@ export class OrderQueryRepository {
   }
 
   async getOrderDetail(orderId: string, userId: string) {
-    const order = await prisma.order.findFirst({
-      where: { id: orderId, userId },
-      include: {
-        items: true,
-        payments: true,
-        statusHistories: {
-          orderBy: { createdAt: "asc" },
-          select: { status: true, notes: true, createdAt: true },
-        },
-      },
-    });
-
+    // PERBAIKAN: query detail dan relasinya dipisah agar method tetap kecil.
+    const order = await findOrderDetail(orderId, userId);
     if (!order) return null;
 
-    const [store, shipping] = await Promise.all([
-      prisma.store.findUnique({ where: { id: order.storeId } }),
-      prisma.shippingMethod.findUnique({
-        where: { id: order.shippingMethodId },
-      }),
-    ]);
-
-    return { order, store, shipping };
+    return getOrderDetailRelations(
+      order.storeId,
+      order.shippingMethodId,
+      order,
+    );
   }
+}
+
+
+async function fetchOrderPage(
+  where: Prisma.OrderWhereInput,
+  query: OrderListQuery,
+) {
+  const skip = (query.page - 1) * query.limit;
+
+  return prisma.$transaction([
+    prisma.order.findMany({
+      where,
+      skip,
+      take: query.limit,
+      orderBy: [
+        { [query.sortBy]: query.sortOrder },
+        { id: "asc" },
+      ],
+      select: ORDER_LIST_SELECT,
+    }),
+    prisma.order.count({ where }),
+  ]);
+}
+
+async function findOrderDetail(
+  orderId: string,
+  userId: string,
+) {
+  return prisma.order.findFirst({
+    where: { id: orderId, userId },
+    include: {
+      items: true,
+      payments: true,
+      statusHistories: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          status: true,
+          notes: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+}
+
+// PERBAIKAN: order sudah dipastikan tidak null
+// oleh getOrderDetail() sebelum helper ini dipanggil.
+async function getOrderDetailRelations(
+  storeId: string,
+  shippingMethodId: string,
+  order: NonNullable<Awaited<ReturnType<typeof findOrderDetail>>>,
+) {
+  const [store, shipping] = await Promise.all([
+    prisma.store.findUnique({ where: { id: storeId } }),
+    prisma.shippingMethod.findUnique({
+      where: { id: shippingMethodId },
+    }),
+  ]);
+
+  return { order, store, shipping };
 }
 
 function buildOrderListWhere(

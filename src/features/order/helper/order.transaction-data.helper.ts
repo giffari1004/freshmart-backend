@@ -20,6 +20,7 @@ interface ShippingData {
   cost: unknown;
 }
 
+// PERBAIKAN: hapus ketergantungan langsung pada DiscountUsageDetail Feature 2.
 export function buildOrderTransactionData(
   userId: string,
   payload: CreateOrderRequest,
@@ -56,9 +57,7 @@ function mapPricing(
   discountAmount: number,
   shippingCost: unknown,
 ) {
-  const subtotal = items.reduce(
-    (total, item) => total + item.subtotal, 0,
-  );
+  const subtotal = calculateSubtotal(items);
   const cost = Number(shippingCost);
   return {
     subtotal,
@@ -66,4 +65,8 @@ function mapPricing(
     shippingCost: cost,
     totalAmount: subtotal - discountAmount + cost,
   };
+}
+
+function calculateSubtotal(items: OrderItemCalculation[]) {
+  return items.reduce((total, item) => total + item.subtotal, 0);
 }

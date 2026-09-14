@@ -3,9 +3,12 @@ import {
   calculateAutomaticDiscount,
   AutomaticDiscountItem,
 } from "../../discount/discount-calculation";
-import { OrderItemCalculation, calculateOrderSubtotal } from "./order.helper";
+import {
+  OrderItemCalculation,
+  calculateOrderSubtotal,
+} from "./order.helper";
 
-interface OrderDiscountResult {
+export interface OrderDiscountResult {
   items: OrderItemCalculation[];
   amount: number;
 }
@@ -16,23 +19,38 @@ export async function calculateOrderDiscount(
   voucherAmount: number,
   shippingCost: number,
 ): Promise<OrderDiscountResult> {
+  const discountItems = items.map(toDiscountItem);
+  const subtotal = calculateOrderSubtotal(items);
+
   const automatic = await calculateAutomaticDiscount(
     storeId,
-    items.map(toDiscountItem),
-    calculateOrderSubtotal(items),
+    discountItems,
+    subtotal,
   );
+
   const bonusItems = await applyBogoBonus(
     storeId,
-    items.map(toDiscountItem),
+    discountItems,
   );
-  const finalItems = applyBonusQuantities(items, bonusItems);
+
+  const finalItems = applyBonusQuantities(
+    items,
+    bonusItems,
+  );
+
   return {
     items: finalItems,
-    amount: capDiscount(voucherAmount + automatic, finalItems, shippingCost),
+    amount: capDiscount(
+      voucherAmount + automatic,
+      finalItems,
+      shippingCost,
+    ),
   };
 }
 
-function toDiscountItem(item: OrderItemCalculation): AutomaticDiscountItem {
+function toDiscountItem(
+  item: OrderItemCalculation,
+): AutomaticDiscountItem {
   return {
     productId: item.productId,
     unitPrice: item.unitPrice,
@@ -45,11 +63,22 @@ function applyBonusQuantities(
   bonusItems: AutomaticDiscountItem[],
 ) {
   const quantities = new Map(
-    bonusItems.map((item) => [item.productId, item.quantity]),
+    bonusItems.map((item) => [
+      item.productId,
+      item.quantity,
+    ]),
   );
+
   return items.map((item) => {
-    const quantity = quantities.get(item.productId) ?? item.quantity;
-    return { ...item, quantity, subtotal: item.unitPrice * quantity };
+    const quantity =
+      quantities.get(item.productId) ??
+      item.quantity;
+
+    return {
+      ...item,
+      quantity,
+      subtotal: item.unitPrice * quantity,
+    };
   });
 }
 
@@ -58,5 +87,8 @@ function capDiscount(
   items: OrderItemCalculation[],
   shippingCost: number,
 ) {
-  return Math.min(amount, calculateOrderSubtotal(items) + shippingCost);
+  return Math.min(
+    amount,
+    calculateOrderSubtotal(items) + shippingCost,
+  );
 }

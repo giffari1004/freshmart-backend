@@ -83,39 +83,108 @@ export async function releaseReservedStock(
   items: OrderItemStock[],
   referenceType: "ORDER" | "ORDER_CANCEL" = "ORDER_CANCEL",
 ) {
+  // PERBAIKAN: detail release dipisahkan agar function tetap kecil.
   for (const item of items) {
-    const storeProduct = await tx.storeProduct.findFirst({
-      where: { storeId, productId: item.productId },
-      select: { id: true },
-    });
-    if (!storeProduct) throw new NotFoundError("Store product not found");
-
-    const rows = await tx.$queryRaw<
-      { stockQuantity: number; reservedStock: number }[]
-    >`
-      UPDATE "store_products"
-      SET "reservedStock" = "reservedStock" - ${item.quantity}
-      WHERE "id" = ${storeProduct.id}
-        AND "reservedStock" >= ${item.quantity}
-      RETURNING "stockQuantity", "reservedStock"
-    `;
-    const updated = rows[0];
-    if (!updated)
-      throw new NotFoundError("Reserved stock is no longer available");
-
-    await tx.stockJournal.create({
-      data: {
-        storeProductId: storeProduct.id,
-        type: "RELEASE",
-        quantity: item.quantity,
-        beforeStock: updated.stockQuantity,
-        afterStock: updated.stockQuantity,
-        referenceType,
-        referenceId: orderId,
-        notes: "Reserved stock released",
-      },
-    });
+    await releaseReservedItem(
+      tx,
+      orderId,
+      storeId,
+      item,
+      referenceType,
+    );
   }
+}
+
+async function releaseReservedItem(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  storeId: string,
+  item: OrderItemStock,
+  referenceType: "ORDER" | "ORDER_CANCEL",
+) {
+  const storeProduct = await findStoreProduct(
+    tx,
+    storeId,
+    item.productId,
+  );
+  const updated = await decrementReservedStock(
+    tx,
+    storeProduct.id,
+    item.quantity,
+  );
+
+  await createReleaseJournal(
+    tx,
+    orderId,
+    item,
+    storeProduct.id,
+    updated.stockQuantity,
+    referenceType,
+  );
+}
+
+async function findStoreProduct(
+  tx: Prisma.TransactionClient,
+  storeId: string,
+  productId: string,
+) {
+  const product = await tx.storeProduct.findFirst({
+    where: { storeId, productId },
+    select: { id: true },
+  });
+
+  if (!product) {
+    throw new NotFoundError("Store product not found");
+  }
+
+  return product;
+}
+
+async function decrementReservedStock(
+  tx: Prisma.TransactionClient,
+  storeProductId: string,
+  quantity: number,
+) {
+  const rows = await tx.$queryRaw<
+    { stockQuantity: number; reservedStock: number }[]
+  >`
+    UPDATE "store_products"
+    SET "reservedStock" = "reservedStock" - ${quantity}
+    WHERE "id" = ${storeProductId}
+      AND "reservedStock" >= ${quantity}
+    RETURNING "stockQuantity", "reservedStock"
+  `;
+
+  const updated = rows[0];
+  if (!updated) {
+    throw new NotFoundError(
+      "Reserved stock is no longer available",
+    );
+  }
+
+  return updated;
+}
+
+async function createReleaseJournal(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  item: OrderItemStock,
+  storeProductId: string,
+  stockQuantity: number,
+  referenceType: "ORDER" | "ORDER_CANCEL",
+) {
+  await tx.stockJournal.create({
+    data: {
+      storeProductId,
+      type: "RELEASE",
+      quantity: item.quantity,
+      beforeStock: stockQuantity,
+      afterStock: stockQuantity,
+      referenceType,
+      referenceId: orderId,
+      notes: "Reserved stock released",
+    },
+  });
 }
 
 async function cancelPendingPayment(

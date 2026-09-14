@@ -94,9 +94,15 @@ export class OrderService {
     const discount = await calculateOrderDiscount(
       selection.store.id, items, voucher.amount, Number(shipping.cost),
     );
+    // PERBAIKAN: OrderDiscountResult tidak menyediakan usages.
     return buildOrderTransactionData(
-      userId, payload, selection.store, address, shipping,
-      discount.items, discount.amount,
+      userId,
+      payload,
+      selection.store,
+      address,
+      shipping,
+      discount.items,
+      discount.amount,
     );
   }
 
