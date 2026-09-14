@@ -2,67 +2,51 @@ import { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { validate } from "../../../validate/validate";
 import { CheckoutService } from "../services/checkout.service";
-import {
-  CheckoutPreviewRequest,
-} from "../checkout.types";
+import { CheckoutPreviewRequest } from "../checkout.types";
 import {
   checkoutShippingOptionsQuerySchema,
+  checkoutVouchersQuerySchema,
 } from "../validations/checkout.validation";
 
-export class CheckoutController {
-  constructor(
-    private readonly checkoutService =
-      new CheckoutService(),
-  ) {}
+type Action = () => Promise<unknown>;
 
-  getCheckoutPreview = async (
+export class CheckoutController {
+  constructor(private readonly checkoutService = new CheckoutService()) {}
+
+  getCheckoutPreview = (req: Request, res: Response, next: NextFunction) =>
+    this.handle(req, res, next, () =>
+      this.checkoutService.getCheckoutPreview(
+        req.user!.id,
+        req.body as CheckoutPreviewRequest,
+      ), "Checkout preview retrieved successfully");
+
+  getVouchers = (req: Request, res: Response, next: NextFunction) =>
+    this.handle(req, res, next, () => {
+      const { storeId } = validate(checkoutVouchersQuerySchema, req.query);
+      return this.checkoutService.getVouchers(req.user!.id, storeId);
+    }, "Checkout vouchers retrieved successfully");
+
+  getShippingOptions = (req: Request, res: Response, next: NextFunction) =>
+    this.handle(req, res, next, () => {
+      const { addressId } = validate(
+        checkoutShippingOptionsQuerySchema,
+        req.query,
+      );
+      return this.checkoutService.getShippingOptions(req.user!.id, addressId);
+    }, "Checkout shipping options retrieved successfully");
+
+  private async handle(
     req: Request,
     res: Response,
     next: NextFunction,
-  ) => {
+    action: Action,
+    message: string,
+  ) {
     try {
-      return res
-        .status(StatusCodes.OK)
-        .json({
-          success: true,
-          message:
-            "Checkout preview retrieved successfully",
-          data:
-            await this.checkoutService.getCheckoutPreview(
-              req.user!.id,
-              req.body as CheckoutPreviewRequest,
-            ),
-        });
+      const data = await action();
+      return res.status(StatusCodes.OK).json({ success: true, message, data });
     } catch (error) {
       next(error);
     }
-  };
-
-  getShippingOptions = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const query = validate(
-      checkoutShippingOptionsQuerySchema,
-      req.query,
-    );
-
-    const data =
-      await this.checkoutService.getShippingOptions(
-        req.user!.id,
-        query.addressId,
-      );
-
-    return res.status(StatusCodes.OK).json({
-      success: true,
-      message:
-        "Checkout shipping options retrieved successfully",
-      data,
-    });
-  } catch (error) {
-    next(error);
   }
-};
 }

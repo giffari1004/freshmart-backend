@@ -47,6 +47,7 @@ export async function calculateDiscount(
   userId: string,
   userVoucherId: string | undefined,
   items: VoucherItem[],
+  shippingCost: number,
 ): Promise<CheckoutDiscount> {
   if (!userVoucherId) return emptyDiscount();
   const userVoucher = await repository.getUserVoucher(userId, userVoucherId);
@@ -54,11 +55,11 @@ export async function calculateDiscount(
   const voucher = userVoucher!.voucher;
   const subtotal = calculateVoucherSubtotal(items);
   validateVoucher(voucher, subtotal, items);
-  return buildDiscount(userVoucher!, voucher, subtotal);
+  return buildDiscount(userVoucher!, voucher, subtotal, shippingCost, items);
 }
 
 function emptyDiscount(): CheckoutDiscount {
-  return { userVoucherId: null, voucherCode: null, amount: 0 };
+  return { userVoucherId: null, voucherCode: null, amount: 0, voucherAmount: 0, automatic: [] };
 }
 
 function validateUserVoucher(userVoucher: UserVoucherWithVoucher | null): void {
@@ -84,15 +85,30 @@ function buildDiscount(
   userVoucher: UserVoucherWithVoucher,
   voucher: UserVoucherWithVoucher["voucher"],
   subtotal: number,
+  shippingCost: number,
+  items: VoucherItem[],
 ): CheckoutDiscount {
-  const amount =
-    voucher.usageType === "SHIPPING"
-      ? 0
-      : calculateDiscountAmount(
-          subtotal,
-          voucher.valueType,
-          voucher.value,
-          voucher.maxDiscountAmount,
-        );
-  return { userVoucherId: userVoucher.id, voucherCode: voucher.code, amount };
+  const baseAmount = getDiscountBase(voucher, subtotal, shippingCost, items);
+  const amount = calculateDiscountAmount(
+    baseAmount,
+    voucher.valueType,
+    voucher.value,
+    voucher.maxDiscountAmount,
+  );
+  return { userVoucherId: userVoucher.id, voucherCode: voucher.code, amount, voucherAmount: amount, automatic: [] };
+}
+
+function getDiscountBase(
+  voucher: UserVoucherWithVoucher["voucher"],
+  subtotal: number,
+  shippingCost: number,
+  items: VoucherItem[],
+): number {
+  if (voucher.usageType === "SHIPPING") return shippingCost;
+  if (voucher.usageType === "PRODUCT_SPECIFIC" && voucher.productId) {
+    return calculateVoucherSubtotal(
+      items.filter((item) => item.storeProduct.product.id === voucher.productId),
+    );
+  }
+  return subtotal;
 }

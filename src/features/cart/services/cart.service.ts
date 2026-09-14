@@ -5,6 +5,7 @@ import { CartRepository } from "../repositories/cart.repository";
 import { calculateAvailableStock } from "../helpers/cart.helper";
 import { CART_MESSAGE } from "../constants/cart.constant";
 import { AddToCartDto, UpdateCartDto } from "../validations/cart.validation";
+import { getCartPromotions } from "../cart.promotion.helper";
 
 export class CartService {
   constructor(private readonly cartRepository = new CartRepository()) {}
@@ -26,6 +27,15 @@ export class CartService {
 
     await this.saveCartItem(cart.id, storeProduct.id, payload.quantity);
     return this.getCart(userId);
+  }
+
+  async getPromotions(userId: string) {
+    const cart = await this.cartRepository.getCartWithItems(userId);
+    return getCartPromotions(
+      userId,
+      cart?.items[0]?.storeProduct.storeId ?? null,
+      cart?.items ?? [],
+    );
   }
 
   async getCart(userId: string) {

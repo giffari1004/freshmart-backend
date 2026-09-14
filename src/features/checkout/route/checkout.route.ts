@@ -8,6 +8,12 @@ export const checkoutRouter = Router();
 const controller = new CheckoutController();
 
 checkoutRouter.get(
+  "/vouchers",
+  authMiddleware,
+  controller.getVouchers,
+);
+
+checkoutRouter.get(
   "/shipping-options",
   authMiddleware,
   controller.getShippingOptions,

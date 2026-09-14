@@ -3,6 +3,7 @@ import { prisma } from "../../../configs/prisma-client-config";
 import { BadRequestError } from "../../../errors/BadRequestError";
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { OrderAdminListInput } from "./order-admin.type";
+import { restoreCancelledOrderStock } from "./order-admin.stock.helper";
 
 type AdminOrderStatus = "PROCESSED" | "SHIPPED" | "CANCELLED";
 type AdminListQuery = OrderAdminListInput["query"];
@@ -88,7 +89,12 @@ function findOrderForUpdate(
       id: orderId,
       ...(storeId ? { storeId } : {}),
     },
-    select: { id: true, status: true },
+    select: {
+      id: true,
+      status: true,
+      storeId: true,
+      items: { select: { productId: true, quantity: true } },
+    },
   }).then((order) => {
     if (!order) throw new NotFoundError("Order not found");
     return order;
@@ -111,30 +117,52 @@ function validateTransition(
   }
 }
 
-function updateOrderStatus(
+async function updateOrderStatus(
+  tx: Prisma.TransactionClient,
+  order: {
+    id: string;
+    status: string;
+    storeId: string;
+    items: { productId: string; quantity: number }[];
+  },
+  status: AdminOrderStatus,
+  actorId: string,
+) {
+  if (status === "CANCELLED") {
+    await restoreCancelledOrderStock(tx, order.id, order.storeId, order.items);
+  }
+  const updated = await updateOrder(tx, order.id, status);
+  await createStatusHistory(tx, order, status, actorId);
+  return updated;
+}
+
+function updateOrder(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  status: AdminOrderStatus,
+) {
+  return tx.order.update({
+    where: { id: orderId },
+    data: {
+      status,
+      shippedAt: status === "SHIPPED" ? new Date() : undefined,
+      cancelledAt: status === "CANCELLED" ? new Date() : undefined,
+    },
+  });
+}
+
+function createStatusHistory(
   tx: Prisma.TransactionClient,
   order: { id: string; status: string },
   status: AdminOrderStatus,
   actorId: string,
 ) {
-  const shippedAt = status === "SHIPPED" ? new Date() : undefined;
-
-  return tx.order.update({
-    where: { id: order.id },
+  return tx.orderStatusHistory.create({
     data: {
+      orderId: order.id,
       status,
-      shippedAt,
-      cancelledAt: status === "CANCELLED" ? new Date() : undefined,
+      changedById: actorId,
+      notes: `Order status changed by admin: ${order.status} -> ${status}`,
     },
-  }).then(async (updated) => {
-    await tx.orderStatusHistory.create({
-      data: {
-        orderId: order.id,
-        status,
-        changedById: actorId,
-        notes: `Order status changed by admin: ${order.status} -> ${status}`,
-      },
-    });
-    return updated;
   });
 }

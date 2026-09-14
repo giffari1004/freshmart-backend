@@ -11,6 +11,7 @@ const cartController = new CartController();
 
 router.use(authMiddleware);
 
+router.get("/promotions", cartController.getPromotions);
 router.get("/", cartController.getCart);
 
 router.post(

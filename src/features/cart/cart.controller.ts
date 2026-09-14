@@ -17,6 +17,19 @@ export class CartController {
     }
   };
 
+  getPromotions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      return this.respond(
+        res,
+        200,
+        undefined,
+        await this.cartService.getPromotions(req.user!.id),
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getCart = async (req: Request, res: Response, next: NextFunction) => {
     try {
       return this.respond(

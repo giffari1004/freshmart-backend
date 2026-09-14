@@ -45,10 +45,20 @@ export interface CheckoutShipping {
   etd: string | null;
 }
 
+export interface CheckoutDiscountItem {
+  discountId: string;
+  type: "DIRECT" | "MIN_PURCHASE" | "BUY1GET1";
+  productId: string | null;
+  amount: number;
+  freeQuantity: number;
+}
+
 export interface CheckoutDiscount {
   userVoucherId: string | null;
   voucherCode: string | null;
   amount: number;
+  voucherAmount: number;
+  automatic: CheckoutDiscountItem[];
 }
 
 export interface CheckoutPreviewResponse {

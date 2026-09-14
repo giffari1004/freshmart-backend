@@ -43,12 +43,16 @@ export class CheckoutRepository {
     });
   }
 
-  async getUserVouchers(userId: string) {
+  async getUserVouchers(userId: string, storeId?: string) {
     return prisma.userVoucher.findMany({
       where: {
         userId,
         isUsed: false,
-        voucher: { isActive: true, expiredAt: { gt: new Date() } },
+        voucher: {
+          isActive: true,
+          expiredAt: { gt: new Date() },
+          storeId: storeId ?? undefined,
+        },
       },
       include: { voucher: true },
       orderBy: { id: "desc" },

@@ -2,11 +2,9 @@ import { NotFoundError } from "../../../errors/NotFoundError";
 import { CheckoutStoreSelectionService } from "./checkout.store-selection.service";
 import { CHECKOUT_MESSAGE } from "../constants/checkout.constant";
 import {
-  CheckoutAddress,
   CheckoutOptionAddress,
   CheckoutOptionShipping,
   CheckoutPreviewRequest,
-  CheckoutStore,
 } from "../checkout.types";
 import { CheckoutMapper } from "../mappers/checkout.mappers";
 import { CheckoutRepository } from "../repository/checkout.repository";
@@ -15,7 +13,8 @@ import {
   getAddress,
   getShipping,
 } from "../helper/checkout.helper";
-import { calculateDiscount } from "../utils/checkout.voucher.util";
+import { calculateCheckoutDiscount } from "../utils/checkout.discount.util";
+import { mapCheckoutVoucher } from "../helper/checkout.voucher-option.helper";
 import {
   getShippingOptions as fetchShippingOptions,
 } from "../../../integrations/rajaongkir-client";
@@ -26,7 +25,6 @@ type CartRecord = NonNullable<
 type AddressRecord = NonNullable<
   Awaited<ReturnType<CheckoutRepository["getUserAddress"]>>
 >;
-type StoreRecord = CartRecord["items"][number]["storeProduct"]["store"];
 type Selection = Awaited<
   ReturnType<CheckoutStoreSelectionService["selectStore"]>
 >;
@@ -58,16 +56,23 @@ export class CheckoutService {
       userId,
       payload,
       selectedCart,
+      Number(shipping.cost),
     );
-
     return CheckoutMapper.toCheckoutPreview(selectedCart, {
-      address: mapAddress(address),
-      store: mapStore(selection.store, selection.distanceKm),
+      address: CheckoutMapper.toAddress(address),
+      store: CheckoutMapper.toStore(
+        selection.store,
+        Number(selection.distanceKm.toFixed(2)),
+      ),
       shipping: CheckoutMapper.toShipping(shipping),
       discount,
     });
   }
 
+  async getVouchers(userId: string, storeId?: string) {
+    const vouchers = await this.checkoutRepository.getUserVouchers(userId, storeId);
+    return vouchers.map(mapCheckoutVoucher);
+  }
   async getShippingOptions(
     userId: string,
     addressId: string,
@@ -89,7 +94,6 @@ export class CheckoutService {
       options,
     );
   }
-
   async getCheckoutAddresses(
     userId: string,
   ): Promise<CheckoutOptionAddress[]> {
@@ -181,41 +185,15 @@ export class CheckoutService {
     userId: string,
     payload: CheckoutPreviewRequest,
     cart: CartRecord,
+    shippingCost: number,
   ) {
-    return calculateDiscount(
+    return calculateCheckoutDiscount(
       this.checkoutRepository,
       userId,
-      payload.userVoucherId,
-      cart.items,
+      payload,
+      cart,
+      shippingCost,
     );
   }
 }
 
-function mapAddress(
-  address: AddressRecord,
-): CheckoutAddress {
-  return {
-    id: address.id,
-    label: address.label,
-    recipientName: address.recipientName,
-    phone: address.phone,
-    province: address.province,
-    city: address.city,
-    district: address.district,
-    fullAddress: address.fullAddress,
-    latitude: address.latitude,
-    longitude: address.longitude,
-  };
-}
-
-function mapStore(
-  store: StoreRecord,
-  distanceKm: number,
-): CheckoutStore {
-  return {
-    id: store.id,
-    name: store.name,
-    code: store.code,
-    distanceKm: Number(distanceKm.toFixed(2)),
-  };
-}

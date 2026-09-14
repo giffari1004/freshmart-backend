@@ -1,13 +1,13 @@
 import { NotFoundError } from "../../../errors/NotFoundError";
 import { CHECKOUT_MESSAGE } from "../../checkout/constants/checkout.constant";
 import { CheckoutStoreSelectionService } from "../../checkout/services/checkout.store-selection.service";
-import { calculateDiscount } from "../../checkout/utils/checkout.voucher.util";
 import { OrderMapper } from "../mappers/order.mapper";
 import {
   validateCancellationStatus,
   validateConfirmationStatus,
 } from "../helper/order.cancellation.helper";
 import { buildOrderItems } from "../helper/order.helper";
+import { calculateOrderDiscount } from "../helper/order.discount.helper";
 import { buildOrderTransactionData } from "../helper/order.transaction-data.helper";
 import { OrderRepository } from "../repository/order.repository";
 import type { CreateOrderRequest, OrderListQuery } from "../order.type";
@@ -88,10 +88,26 @@ export class OrderService {
     const shipping = await this.getShipping(
       payload.shippingMethodId, selection.store.id, address.city,
     );
-    const discount = await this.getDiscount(userId, payload, cart);
     const items = buildOrderItems(cart.items);
+    const discount = await calculateOrderDiscount(
+      this.orderRepository,
+      userId,
+      payload.userVoucherId,
+      selection.store.id,
+      items,
+      Number(shipping.cost),
+    );
+    // PERBAIKAN: OrderDiscountResult tidak menyediakan usages.
     return buildOrderTransactionData(
-      userId, payload, selection.store, address, shipping, items, discount.amount,
+      userId,
+      payload,
+      selection.store,
+      address,
+      shipping,
+      discount.items,
+      discount.amount,
+      discount.voucherAmount,
+      discount.usages,
     );
   }
 
@@ -150,15 +166,7 @@ export class OrderService {
     return shipping;
   }
 
-  private getDiscount(
-    userId: string,
-    payload: CreateOrderRequest,
-    cart: OrderCart,
-  ) {
-    return calculateDiscount(
-      this.orderRepository, userId, payload.userVoucherId, cart.items,
-    );
-  }
+
 }
 
 function toRequestedStoreItem(item: OrderCart["items"][number]) {
@@ -167,3 +175,4 @@ function toRequestedStoreItem(item: OrderCart["items"][number]) {
     quantity: item.quantity,
   };
 }
+
