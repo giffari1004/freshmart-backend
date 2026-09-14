@@ -79,4 +79,18 @@ export class StoreController {
       data: user,
     });
   }
+
+  static async unassignAdmin(req: Request, res: Response) {
+    const { params } = validate(StoreValidation.UNASSIGN_STORE_ADMIN, {
+      params: req.params,
+    });
+
+    const result = await StoreService.unassignAdmin({ params });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Store admin removed successfully",
+      data: result,
+    });
+  }
 }

@@ -48,9 +48,6 @@ export class StoreValidation {
       latitude: z.coerce.number().min(-90).max(90).optional(),
       longitude: z.coerce.number().min(-180).max(180).optional(),
       maxServiceRadiusKm: z.coerce.number().positive().optional(),
-      // sengaja z.boolean() polos, BUKAN z.coerce.boolean() — coerce boolean
-      // di Zod itu cuma `Boolean(value)`, jadi string "false" akan ke-coerce
-      // jadi `true` (truthy string). Untuk boolean, terima tipe asli saja.
       isActive: z.boolean().optional(),
     }),
   });
@@ -90,6 +87,12 @@ export class StoreValidation {
       userId: z.string().uuid("Invalid user id"),
     }),
   });
+
+  static readonly UNASSIGN_STORE_ADMIN = z.object({
+    params: z.object({
+      id: z.string().uuid("Invalid store id"),
+    }),
+  });
 }
 
 export type createStoreSchema = z.infer<typeof StoreValidation.CREATE_STORE>;
@@ -101,4 +104,7 @@ export type getStoreByIdSchema = z.infer<
 export type deleteStoreSchema = z.infer<typeof StoreValidation.DELETE_STORE>;
 export type assignStoreAdminSchema = z.infer<
   typeof StoreValidation.ASSIGN_STORE_ADMIN
+>;
+export type unassignStoreAdminSchema = z.infer<
+  typeof StoreValidation.UNASSIGN_STORE_ADMIN
 >;
