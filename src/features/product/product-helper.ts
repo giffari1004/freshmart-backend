@@ -18,7 +18,7 @@ export function whereProduct(
 }
 export async function checkDuplicateProduct(name: string, excludeId?: string) {
   const existingName = await prisma.product.findFirst({
-    where: { name, ...(excludeId && { id: { not: excludeId } }) },
+    where: { name, deletedAt:null,...(excludeId && { id: { not: excludeId } }) },
   });
   if (existingName) throw new ConflictError("Product name already exists");
 }
