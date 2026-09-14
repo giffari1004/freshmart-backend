@@ -20,7 +20,8 @@ function getFreeQuantity(
   automatic: AutomaticDiscountDetail[],
 ) {
   return automatic.find(
-    (item) => item.type === "BUY1GET1" && item.productId === productId,
+    (item) =>
+      item.type === "BUY1GET1" && item.productId === productId,
   )?.freeQuantity ?? 0;
 }
 
