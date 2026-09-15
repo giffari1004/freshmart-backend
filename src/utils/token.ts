@@ -1,15 +1,10 @@
 import crypto from "crypto";
-import { TokenType } from "../../generated/prisma";
+import { TokenType, Prisma } from "../../generated/prisma";
 import { prisma } from "../configs/prisma-client-config";
 import { BadRequestError } from "../errors/BadRequestError";
 
 const TOKEN_EXPIRY_HOURS = 1;
 
-/**
- * Dipakai bersama oleh features/auth (verifikasi email saat register,
- * reset password) dan features/profile (verifikasi ulang saat ganti
- * email) — supaya logic issue/consume token tidak duplikat di 2 tempat.
- */
 export async function issueAuthToken(
   userId: string,
   type: TokenType,
@@ -22,19 +17,24 @@ export async function issueAuthToken(
   return token;
 }
 
-export async function consumeAuthToken(token: string, type: TokenType) {
-  const authToken = await prisma.authToken.findFirst({
+export async function consumeAuthToken(
+  token: string,
+  type: TokenType,
+  db: Prisma.TransactionClient = prisma,
+) {
+  const authToken = await db.authToken.findFirst({
     where: { token, type, usedAt: null },
   });
 
   if (!authToken) {
     throw new BadRequestError("Token is invalid or has already been used");
   }
+
   if (authToken.expiresAt < new Date()) {
     throw new BadRequestError("Token has expired, please request a new one");
   }
 
-  await prisma.authToken.update({
+  await db.authToken.update({
     where: { id: authToken.id },
     data: { usedAt: new Date() },
   });
@@ -42,11 +42,6 @@ export async function consumeAuthToken(token: string, type: TokenType) {
   return authToken;
 }
 
-/**
- * Invalidasi semua token aktif (belum dipakai) dari tipe tertentu milik
- * satu user — dipanggil sebelum issue token baru, supaya cuma ada 1
- * token valid aktif per user pada satu waktu.
- */
 export async function invalidateActiveTokens(userId: string, type: TokenType) {
   await prisma.authToken.updateMany({
     where: { userId, type, usedAt: null },
