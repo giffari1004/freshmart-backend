@@ -12,8 +12,12 @@ const AUTH_COOKIE_OPTIONS = {
 }
 
 export class SocialLoginController {
-  static redirectToGoogle(_req: Request, res: Response) {
-    res.redirect(SocialLoginService.getGoogleRedirectUrl());
+  static redirectToGoogle(req: Request, res: Response) {
+    const { query } = validate(SocialLoginValidation.OAUTH_REDIRECT, {
+      query: req.query,
+    });
+
+    res.redirect(SocialLoginService.getGoogleRedirectUrl(query.ref));
   }
 
   static async googleCallback(req: Request, res: Response) {
@@ -38,8 +42,12 @@ export class SocialLoginController {
     }
   }
 
-  static redirectToFacebook(_req: Request, res: Response) {
-    res.redirect(SocialLoginService.getFacebookRedirectUrl());
+  static redirectToFacebook(req: Request, res: Response) {
+    const { query } = validate(SocialLoginValidation.OAUTH_REDIRECT, {
+      query: req.query,
+    });
+
+    res.redirect(SocialLoginService.getFacebookRedirectUrl(query.ref));
   }
 
   static async facebookCallback(req: Request, res: Response) {

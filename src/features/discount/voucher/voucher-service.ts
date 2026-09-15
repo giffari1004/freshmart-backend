@@ -20,10 +20,18 @@ import { AuthUser } from "../../../middlewares/auth-middleware";
 
 export class VoucherService {
   static async getAllVoucher({ query }: getAllVourcherSchema, user: AuthUser) {
-    const { page, limit, search, usageType, storeId,valueType, sortBy, sortOrder } =
-      query;
+    const {
+      page,
+      limit,
+      search,
+      usageType,
+      storeId,
+      valueType,
+      sortBy,
+      sortOrder,
+    } = query;
     const { skip, take } = getPagination(page, limit);
-    const where = voucherWhere({ user, search, usageType, storeId,valueType });
+    const where = voucherWhere({ user, search, usageType, storeId, valueType });
     const [data, totalData] = await Promise.all([
       prisma.voucher.findMany({
         where,
@@ -35,8 +43,8 @@ export class VoucherService {
             select: {
               id: true,
               name: true,
-            }
-          }
+            },
+          },
         },
       }),
       prisma.voucher.count({ where }),
@@ -45,8 +53,8 @@ export class VoucherService {
     return { data, meta };
   }
   static async createVoucher({ body }: createVourcherSchema, user: AuthUser) {
-    const storeId = voucherStoreId(user,body.storeId)
-    await checkVoucherCodeDuplicate(storeId,body.code);
+    const storeId = voucherStoreId(user, body.storeId);
+    await checkVoucherCodeDuplicate(storeId, body.code);
     const voucher = await prisma.voucher.create({
       data: {
         ...body,
@@ -56,19 +64,27 @@ export class VoucherService {
     });
     return voucher;
   }
-  static async updateVoucher({ params, body }: updateVourcherSchema,user:AuthUser) {
+  static async updateVoucher(
+    { params, body }: updateVourcherSchema,
+    user: AuthUser,
+  ) {
     const existingVoucher = await findVoucherOrError(params.id);
-    assertStoreOwnership(user,existingVoucher.storeId)
-    if (body.code) await checkVoucherCodeDuplicate(existingVoucher.storeId,body.code, params.id);
+    assertStoreOwnership(user, existingVoucher.storeId);
+    if (body.code)
+      await checkVoucherCodeDuplicate(
+        existingVoucher.storeId,
+        body.code,
+        params.id,
+      );
     const voucher = await prisma.voucher.update({
       where: { id: params.id },
       data: body,
     });
     return voucher;
   }
-  static async deleteVoucher({ params }: VourcherByIdSchema, user:AuthUser) {
+  static async deleteVoucher({ params }: VourcherByIdSchema, user: AuthUser) {
     const existingVoucher = await findVoucherOrError(params.id);
-    assertStoreOwnership(user,existingVoucher.storeId)
+    assertStoreOwnership(user, existingVoucher.storeId);
     const voucher = await prisma.voucher.update({
       where: { id: params.id },
       data: { deletedAt: new Date() },
@@ -93,5 +109,40 @@ export class VoucherService {
       throw new NotFoundError("Voucher is invalid or expired");
     }
     return voucher;
+  }
+  static async getMyVouchers(userId: string) {
+    return prisma.userVoucher.findMany({
+      where: {
+        userId,
+        isUsed: false,
+        voucher: {
+          isActive: true,
+          expiredAt: {
+            gt: new Date(),
+          },
+          deletedAt: null,
+        },
+      },
+      select: {
+        id: true,
+        source: true,
+        isUsed: true,
+        voucher: {
+          select: {
+            id: true,
+            code: true,
+            usageType: true,
+            valueType: true,
+            value: true,
+            maxDiscountAmount: true,
+            minPurchaseAmount: true,
+            expiredAt: true,
+          },
+        },
+      },
+      orderBy: {
+        id: "desc",
+      },
+    });
   }
 }
