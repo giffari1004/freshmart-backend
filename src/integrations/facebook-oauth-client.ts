@@ -6,12 +6,13 @@ import {
 } from "../configs/env-config";
 import type { OAuthProfile } from "./oauth-types";
 
-export function getFacebookAuthUrl(): string {
+export function getFacebookAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: FACEBOOK_APP_ID,
     redirect_uri: FACEBOOK_REDIRECT_URI,
     response_type: "code",
     scope: "email,public_profile",
+    state,
   });
 
   return `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`;

@@ -15,49 +15,69 @@ import {
 } from "../../integrations/facebook-oauth-client";
 import type { OAuthProfile } from "../../integrations/oauth-types";
 import type { oauthCallbackSchema } from "./social-login.validation";
+import { createOAuthState, verifyOAuthState } from "../../integrations/oauth-state";
+import { ReferralService } from "../referral/referral.service";
 
 export class SocialLoginService {
-  static getGoogleRedirectUrl() {
-    return getGoogleAuthUrl();
+  static getGoogleRedirectUrl(referralCode?: string) {
+    const state = createOAuthState(referralCode);
+    return getGoogleAuthUrl(state);
   }
 
-  static getFacebookRedirectUrl() {
-    return getFacebookAuthUrl();
+  static getFacebookRedirectUrl(referralCode?: string) {
+    const state = createOAuthState(referralCode);
+    return getFacebookAuthUrl(state);
   }
 
   static async handleGoogleCallback({ query }: oauthCallbackSchema) {
+    const state = verifyOAuthState(query.state);
     const profile = await getGoogleProfile(query.code);
-    return SocialLoginService.findOrCreateUser(profile, AuthProvider.GOOGLE);
+
+    return SocialLoginService.findOrCreateUser(
+      profile,
+      AuthProvider.GOOGLE,
+      state.referralCode,
+    );
   }
 
   static async handleFacebookCallback({ query }: oauthCallbackSchema) {
+    const state = verifyOAuthState(query.state);
     const profile = await getFacebookProfile(query.code);
-    return SocialLoginService.findOrCreateUser(profile, AuthProvider.FACEBOOK);
+
+    return SocialLoginService.findOrCreateUser(
+      profile,
+      AuthProvider.FACEBOOK,
+      state.referralCode,
+    );
   }
 
-  /**
-   * Find-or-create berdasarkan EMAIL (bukan providerId) — supaya kalau
-   * user sebelumnya sempat daftar manual pakai email yang sama, akunnya
-   * "menyatu" otomatis, bukan bikin akun duplikat.
-   *
-   * Trade-off yang perlu didiskusikan ke tim: ini mengasumsikan email
-   * dari provider social sudah terverifikasi kepemilikannya oleh
-   * Google/Facebook. Kalau ada user yang daftar manual (authProvider
-   * EMAIL) lalu login pakai Google dengan email yang sama, akunnya ikut
-   * ke-upgrade jadi isVerified true lewat jalur ini — perlu disepakati
-   * apakah ini perilaku yang diinginkan, atau harus ditolak dengan pesan
-   * error ("email ini sudah terdaftar manual, silakan login manual").
-   */
   private static async findOrCreateUser(
     profile: OAuthProfile,
     provider: AuthProvider,
+    referralCode?: string,
   ) {
     let user = await prisma.user.findUnique({
       where: { email: profile.email },
     });
 
     if (!user) {
-      const referralCode = await generateUniqueReferralCode();
+      const newReferralCode = await generateUniqueReferralCode();
+
+      let referredById: string | undefined;
+
+      if (referralCode) {
+        const referrer = await prisma.user.findUnique({
+          where: { referralCode },
+          select: { id: true },
+        });
+
+        if (!referrer) {
+          throw new ConflictError("Referral code is invalid");
+        }
+
+        referredById = referrer.id;
+      }
+
       user = await prisma.user.create({
         data: {
           name: profile.name,
@@ -65,11 +85,20 @@ export class SocialLoginService {
           avatarUrl: profile.avatarUrl,
           authProvider: provider,
           providerId: profile.providerId,
-          isVerified: true, // email dari provider social sudah diverifikasi mereka
+
+          // Social login sudah terverifikasi oleh provider
+          isVerified: true,
           verifiedAt: new Date(),
-          referralCode,
+
+          // Referral code milik user BARU
+          referralCode: newReferralCode,
+
+          // Referral code milik user yang mengundang
+          referredById,
         },
       });
+
+      await ReferralService.rewardReferralVoucher(user.id);
     } else if (user.deletedAt) {
       throw new ConflictError("This account has been deactivated");
     }

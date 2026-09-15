@@ -5,6 +5,7 @@ import { JWT_SECRET } from "../../configs/env-config";
 import { BcryptUtil } from "../../utils/bcrypt-util";
 import { MailerUtil } from "../../utils/mailer";
 import { generateUniqueReferralCode } from "../../utils/referral-code";
+import { ReferralService } from "../referral/referral.service";
 import {
   issueAuthToken,
   consumeAuthToken,
@@ -68,30 +69,35 @@ export class AuthService {
     const token = await issueAuthToken(user.id, TokenType.EMAIL_VERIFICATION);
     await MailerUtil.sendVerificationEmail(email, token);
 
-    // TODO: kalau referredById terisi, pemberian voucher reward ke
-    // referrer itu domain Voucher/UserVoucher (Feature 2/3) — belum
-    // di-wire di sini, perlu koordinasi lintas fitur.
-
     return user;
   }
 
   static async verifyEmail({ body }: verifyEmailSchema) {
     const { token, password } = body;
 
-    const authToken = await consumeAuthToken(
-      token,
-      TokenType.EMAIL_VERIFICATION,
-    );
-
     const passwordHash = await BcryptUtil.hashPassword(password);
 
-    const user = await prisma.user.update({
-      where: { id: authToken.userId },
-      data: { passwordHash, isVerified: true, verifiedAt: new Date() },
-      select: SAFE_USER_SELECT,
-    });
+    return prisma.$transaction(async (tx) => {
+      const authToken = await consumeAuthToken(
+        token,
+        TokenType.EMAIL_VERIFICATION,
+        tx,
+      );
 
-    return user;
+      const user = await tx.user.update({
+        where: { id: authToken.userId },
+        data: {
+          passwordHash,
+          isVerified: true,
+          verifiedAt: new Date(),
+        },
+        select: SAFE_USER_SELECT,
+      });
+
+      await ReferralService.rewardReferralVoucher(user.id, tx);
+
+      return user;
+    });
   }
 
   static async resendVerification({ body }: resendVerificationSchema) {
