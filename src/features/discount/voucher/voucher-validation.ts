@@ -1,6 +1,12 @@
 import z from "zod";
 import { ValueType, VoucherUsageType } from "../../../../generated/prisma";
 
+const emptyToUndefined = (val: unknown) =>
+  typeof val === "string" && val.trim() === "" ? undefined : val;
+
+const optionalUuid = (message = "Invalid id") =>
+  z.preprocess(emptyToUndefined, z.string().uuid(message).optional());
+
 export default class VoucherValidation {
   static readonly CREATE_VOUCHER = z.object({
     body: z
@@ -97,7 +103,7 @@ export default class VoucherValidation {
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().default(10),
-      storeId: z.string().uuid("Invalid store id").optional(),
+      storeId: optionalUuid("Invalid store id"),
       search: z.string().optional(),
       usageType: z.enum(VoucherUsageType).optional(),
       valueType: z.enum(ValueType).optional(),

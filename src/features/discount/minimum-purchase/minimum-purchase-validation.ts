@@ -1,6 +1,12 @@
 import z from "zod";
 import { ValueType } from "../../../../generated/prisma";
 
+const emptyToUndefined = (val: unknown) =>
+  typeof val === "string" && val.trim() === "" ? undefined : val;
+
+const optionalUuid = (message = "Invalid id") =>
+  z.preprocess(emptyToUndefined, z.string().uuid(message).optional());
+
 export class MinimumDiscountValidation {
   static readonly CREATE = z.object({
     body: z
@@ -57,8 +63,7 @@ export class MinimumDiscountValidation {
     })
     .refine(
       (data) =>
-        data.body.valueType === "PERCENTAGE" &&
-        data.body.value !== undefined
+        data.body.valueType === "PERCENTAGE" && data.body.value !== undefined
           ? data.body.value <= 100
           : true,
       {
@@ -87,8 +92,8 @@ export class MinimumDiscountValidation {
     query: z.object({
       page: z.coerce.number().int().positive().default(1),
       limit: z.coerce.number().int().positive().max(100).default(10),
-      storeId: z.string().uuid().optional(),
-      productId: z.string().uuid().optional(),
+      storeId: optionalUuid("Invalid store id"),
+      productId: optionalUuid("Invalid product id"),
     }),
   });
 }
